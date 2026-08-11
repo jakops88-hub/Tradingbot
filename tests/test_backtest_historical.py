@@ -73,7 +73,7 @@ def test_complete_historical_backtest_flow_records_expected_metrics() -> None:
     assert result.total_fees_paid == Decimal("0")
     assert result.total_execution_costs == Decimal("0")
     assert result.profit_factor == Decimal("0.9990009990009990009990009990")
-    assert result.max_drawdown == Decimal("-0.001")
+    assert result.max_drawdown == Decimal("0.001")
     assert result.equity_curve == [
         Decimal("1000.00000000"),
         Decimal("1000.50000000"),

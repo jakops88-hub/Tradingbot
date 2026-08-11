@@ -25,8 +25,8 @@ def max_drawdown(equity_curve: list[Decimal]) -> Decimal:
     for equity in equity_curve:
         peak = max(peak, equity)
         if peak > 0:
-            drawdown = (equity / peak) - Decimal("1")
-            worst = min(worst, drawdown)
+            drawdown = Decimal("1") - (equity / peak)
+            worst = max(worst, drawdown)
     return worst
 
 

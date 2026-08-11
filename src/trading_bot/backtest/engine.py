@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from trading_bot.config.risk_profiles import RiskProfile
-from trading_bot.data.models import Candle, OrderSide, Trade
+from trading_bot.data.models import Candle, Order, OrderSide, Trade
 from trading_bot.execution.broker import Broker
 from trading_bot.metrics.performance import (
     buy_and_hold_return,
@@ -34,6 +34,9 @@ class BacktestResult:
     losing_trades: int
     win_rate: Decimal
     realized_pnl: Decimal
+    unrealized_pnl: Decimal
+    open_positions: int
+    positions_value: Decimal
     gross_pnl: Decimal
     net_pnl: Decimal
     total_fees_paid: Decimal
@@ -62,6 +65,7 @@ class BacktestEngine:
         risk_profile: RiskProfile,
         broker: Broker,
         starting_cash: Decimal,
+        close_open_positions: bool = False,
     ) -> None:
         if starting_cash <= 0:
             raise ValueError("starting_cash must be positive")
@@ -69,6 +73,7 @@ class BacktestEngine:
         self.risk_manager = RiskManager(risk_profile)
         self.starting_cash = starting_cash
         self.broker = broker
+        self.close_open_positions = close_open_positions
 
     def run(self, candles: list[Candle]) -> BacktestResult:
         if not candles:
@@ -111,6 +116,36 @@ class BacktestEngine:
 
             equity_curve.append(portfolio.equity(prices))
 
+        final_candle = sorted_candles[-1]
+        final_prices = {final_candle.symbol: final_candle.close}
+        if self.close_open_positions:
+            for symbol, position in list(portfolio.positions.items()):
+                if position.quantity <= 0:
+                    continue
+                average_price_before_trade = position.average_price
+                close_order = Order(
+                    symbol=symbol,
+                    side=OrderSide.SELL,
+                    quantity=position.quantity,
+                    created_at=final_candle.timestamp,
+                )
+                trade = self.broker.submit_order(close_order, final_prices[symbol])
+                portfolio.apply_trade(trade)
+                trade_log.append(trade)
+                closed_trade_pnls.append(
+                    (trade.price - average_price_before_trade) * trade.quantity - trade.commission
+                )
+            equity_curve[-1] = portfolio.equity(final_prices)
+
+        final_snapshot = portfolio.snapshot(final_prices, final_candle.timestamp)
+        unrealized_pnl = sum(
+            (
+                position.unrealized_pnl(final_prices.get(symbol, position.average_price))
+                for symbol, position in portfolio.positions.items()
+                if position.quantity > 0
+            ),
+            Decimal("0"),
+        )
         ending_equity = equity_curve[-1]
         net_pnl = ending_equity - self.starting_cash
         total_fees_paid = sum((trade.commission for trade in trade_log), Decimal("0"))
@@ -143,6 +178,9 @@ class BacktestEngine:
             losing_trades=losing_trades,
             win_rate=win_rate(winning_trades, losing_trades),
             realized_pnl=portfolio.realized_pnl,
+            unrealized_pnl=unrealized_pnl,
+            open_positions=final_snapshot.open_positions,
+            positions_value=final_snapshot.positions_value,
             gross_pnl=gross_pnl,
             net_pnl=net_pnl,
             total_fees_paid=total_fees_paid,

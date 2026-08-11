@@ -19,13 +19,15 @@ Implemented:
 - Backtest results with return, drawdown, trade counts, win rate, realized PnL, profit factor, and equity curve
 - Configurable offline execution costs: percentage fee, fixed fee, and slippage
 - Buy-and-hold benchmark return comparison for the same historical period
+- Long-only EMA crossover strategy for historical simulation
+- Optional final-candle closing of open backtest positions
 - Offline pytest coverage for foundational components
 
 Not implemented yet:
 
 - Live trading
 - Real broker integrations
-- A profitable strategy
+- Strategy optimization or profitability claims
 - Dashboard or web UI
 
 ## Architecture
@@ -81,4 +83,4 @@ python -m pytest
 trading-bot
 ```
 
-The CLI runs a deterministic offline demo using `tests/fixtures/sample_ohlcv.csv`, starting capital of `1000 SEK`, the `MEDIUM` risk profile, and a simple threshold strategy used only to verify the pipeline.
+The CLI runs a deterministic offline EMA 20/50 historical simulation with starting capital of `1000 SEK`, the `MEDIUM` risk profile, and example execution costs. It is not evidence of future profitability.
