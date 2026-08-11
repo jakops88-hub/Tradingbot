@@ -22,6 +22,21 @@ def max_drawdown(equity_curve: list[Decimal]) -> Decimal:
     return worst
 
 
+def win_rate(winning_trades: int, losing_trades: int) -> Decimal:
+    closed_trades = winning_trades + losing_trades
+    if closed_trades == 0:
+        return Decimal("0")
+    return Decimal(winning_trades) / Decimal(closed_trades)
+
+
+def profit_factor(gross_profit: Decimal, gross_loss: Decimal) -> Decimal | None:
+    if gross_loss < 0:
+        raise ValueError("gross_loss must be non-negative")
+    if gross_loss == 0:
+        return None if gross_profit == 0 else Decimal("Infinity")
+    return gross_profit / gross_loss
+
+
 def goal_progress(current_equity: Decimal, target_equity: Decimal) -> Decimal:
     if current_equity < 0:
         raise ValueError("current_equity cannot be negative")

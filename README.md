@@ -1,6 +1,6 @@
 # TradingBot
 
-TradingBot is a modular Python foundation for an automated trading platform. The current project intentionally stops at offline architecture: typed domain models, strategy and broker interfaces, risk gates, portfolio accounting, paper execution primitives, metrics, and backtest orchestration.
+TradingBot is a modular Python foundation for an automated trading platform. The current project intentionally stops at offline architecture: typed domain models, strategy and broker interfaces, risk gates, portfolio accounting, paper execution primitives, metrics, historical CSV loading, and backtest orchestration.
 
 The current version cannot trade real money. It has no live broker integration, no API-key requirements, and no credential storage.
 
@@ -14,7 +14,9 @@ Implemented:
 - LOW, MEDIUM, and HIGH risk profile presets
 - Decimal-based accounting for cash, prices, quantities, and PnL
 - Paper broker that returns simulated trade records only
-- Portfolio accounting and offline backtest orchestration
+- Portfolio accounting and offline historical backtest orchestration
+- CSV-based historical OHLCV loading with validation
+- Backtest results with return, drawdown, trade counts, win rate, realized PnL, profit factor, and equity curve
 - Offline pytest coverage for foundational components
 
 Not implemented yet:
@@ -76,3 +78,5 @@ python -m pytest
 ```powershell
 trading-bot
 ```
+
+The CLI runs a deterministic offline demo using `tests/fixtures/sample_ohlcv.csv`, starting capital of `1000 SEK`, the `MEDIUM` risk profile, and a simple threshold strategy used only to verify the pipeline.

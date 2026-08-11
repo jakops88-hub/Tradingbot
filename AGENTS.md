@@ -2,7 +2,7 @@
 
 ## Project Purpose
 
-TradingBot is a Python 3.11+ foundation for an automated trading platform. It currently supports offline domain modeling, paper execution primitives, risk gates, portfolio accounting, metrics, and backtest orchestration. It must not place real trades.
+TradingBot is a Python 3.11+ foundation for an automated trading platform. It currently supports offline domain modeling, historical CSV loading, paper execution primitives, risk gates, portfolio accounting, metrics, and backtest orchestration. It must not place real trades.
 
 ## Architecture
 
@@ -14,7 +14,7 @@ Market Data -> Strategy -> Signal -> Risk Manager -> Order -> Broker -> Portfoli
 
 Core boundaries:
 
-- `data`: market-data provider interfaces and typed market/domain models.
+- `data`: market-data provider interfaces, historical CSV loading, and typed market/domain models.
 - `strategies`: strategy interface only; strategies emit signals and never send orders.
 - `risk`: risk profiles, position sizing, and signal-to-order approval.
 - `execution`: broker interface and paper broker implementation.

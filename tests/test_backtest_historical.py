@@ -1,7 +1,3 @@
-"""Command-line entrypoint for offline historical backtesting."""
-
-from __future__ import annotations
-
 from collections.abc import Sequence
 from datetime import datetime
 from decimal import Decimal
@@ -15,8 +11,11 @@ from trading_bot.execution.paper_broker import PaperBroker
 from trading_bot.strategies.base import Strategy
 
 
-class DemoThresholdStrategy(Strategy):
-    name = "demo_threshold"
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+class ThresholdFixtureStrategy(Strategy):
+    name = "threshold_fixture"
 
     def generate_signal(
         self,
@@ -35,14 +34,12 @@ class DemoThresholdStrategy(Strategy):
             symbol=latest.symbol,
             action=action,
             generated_at=latest.timestamp,
-            reason="demo threshold",
+            reason="fixture threshold",
         )
 
 
-def main() -> None:
-    project_root = Path(__file__).resolve().parents[2]
-    data_path = project_root / "tests" / "fixtures" / "sample_ohlcv.csv"
-    provider = HistoricalDataProvider(data_path)
+def test_complete_historical_backtest_flow_records_expected_metrics() -> None:
+    provider = HistoricalDataProvider(FIXTURES / "sample_ohlcv.csv")
     candles = list(
         provider.historical_candles(
             "ABC",
@@ -51,23 +48,29 @@ def main() -> None:
         )
     )
     engine = BacktestEngine(
-        strategy=DemoThresholdStrategy(),
+        strategy=ThresholdFixtureStrategy(),
         risk_profile=get_risk_profile(RiskMode.MEDIUM),
         broker=PaperBroker(),
         starting_cash=Decimal("1000"),
     )
+
     result = engine.run(candles)
 
-    print("TradingBot offline backtest demo")
-    print("Data: tests/fixtures/sample_ohlcv.csv")
-    print("Starting capital: 1000 SEK")
-    print(f"Ending capital: {result.ending_capital} SEK")
-    print(f"Total return: {result.total_return_pct}%")
-    print(f"Trades: {result.total_trades}")
-    print(f"Win rate: {result.win_rate * Decimal('100')}%")
-    print(f"Realized PnL: {result.realized_pnl} SEK")
-    print("Real-money trading: unavailable")
-
-
-if __name__ == "__main__":
-    main()
+    assert result.starting_capital == Decimal("1000")
+    assert result.ending_capital == Decimal("999.99900000")
+    assert result.total_return == Decimal("-0.00000100")
+    assert result.total_return_pct == Decimal("-0.00010000")
+    assert result.total_trades == 4
+    assert result.winning_trades == 1
+    assert result.losing_trades == 1
+    assert result.win_rate == Decimal("0.5")
+    assert result.realized_pnl == Decimal("-0.00100000")
+    assert result.profit_factor == Decimal("0.9990009990009990009990009990")
+    assert result.max_drawdown == Decimal("-0.001")
+    assert result.equity_curve == [
+        Decimal("1000.00000000"),
+        Decimal("1000.50000000"),
+        Decimal("1001.00000000"),
+        Decimal("1001.00000000"),
+        Decimal("999.99900000"),
+    ]
