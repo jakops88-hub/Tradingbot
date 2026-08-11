@@ -3,12 +3,12 @@
   "auto_adjust": true,
   "end_date": "2026-01-01",
   "interval": "1d",
-  "largest_repaired_ohlc_violation_pct": "2.160262602967114136927749111E-14",
+  "largest_repaired_ohlc_violation_pct": "7.970943323364992210086021902E-15",
   "ohlc_normalization_policy": "yahoo_rounding_tolerance",
   "quote_currency": "SEK",
-  "repaired_ohlc_rows": 6,
+  "repaired_ohlc_rows": 1,
   "source": "yfinance",
   "start_date": "2018-01-01",
-  "symbol": "VOLV-B.ST",
+  "symbol": "SAND.ST",
   "yfinance_repair": false
 }

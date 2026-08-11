@@ -222,6 +222,19 @@ def print_market_sweep_report(report: MarketSweepReport) -> None:
         for failure in report.failures:
             print(f"{failure.symbol}: {failure.reason}")
     print("")
+    print("Data Quality")
+    print(f"{'Symbol':<12}{'Candles':>10}{'Repaired':>12}{'Largest Repair':>18}{'Status':>10}")
+    for result in report.results:
+        print(
+            f"{result.symbol:<12}"
+            f"{result.candle_count:>10}"
+            f"{result.repaired_ohlc_rows:>12}"
+            f"{_format_data_quality_pct(result.largest_repaired_ohlc_violation_pct):>18}"
+            f"{result.data_quality_status:>10}"
+        )
+    for failure in report.failures:
+        print(f"{failure.symbol:<12}{'n/a':>10}{'n/a':>12}{'n/a':>18}{'FAIL':>10}  {failure.reason}")
+    print("")
     print("Cross-market summary")
     summary = report.summary
     print(f"Profitable instruments: {summary.profitable_instruments}")
@@ -269,6 +282,14 @@ def _period_row(result: PeriodResult) -> str:
 def _format_pct(value: Decimal, *, signed: bool = True) -> str:
     sign = "+" if signed else ""
     return f"{value.quantize(Decimal('0.01')):{sign}}%"
+
+
+def _format_data_quality_pct(value: Decimal) -> str:
+    if value == 0:
+        return "0%"
+    if abs(value) >= Decimal("0.01"):
+        return _format_pct(value, signed=False)
+    return f"{value:.2E}%"
 
 
 def _build_parser() -> argparse.ArgumentParser:

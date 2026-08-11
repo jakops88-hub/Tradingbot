@@ -51,6 +51,11 @@ def write_dataset(tmp_path: Path, symbol: str, prices: list[str], *, adjustment_
             start_date=START.date().isoformat(),
             end_date=(START + timedelta(days=len(prices) - 1)).date().isoformat(),
             adjustment_policy=adjustment_policy,
+            auto_adjust=adjustment_policy == "adjusted",
+            yfinance_repair=True,
+            ohlc_normalization_policy="yahoo_rounding_tolerance",
+            repaired_ohlc_rows=2,
+            largest_repaired_ohlc_violation_pct="0.00000000000002",
         ),
     )
     return csv_path
@@ -121,6 +126,10 @@ def test_market_sweep_aggregate_metrics_ranking_and_counts(tmp_path: Path) -> No
     assert report.summary.worst_strategy_instrument.symbol == "LOSE.ST"
     assert report.summary.strategy_beats_buy_and_hold_count == 2
     assert [result.symbol for result in report.ranking] == ["WIN.ST", "LOSE.ST", "BEAT.ST"]
+    assert report.results[0].candle_count == 2
+    assert report.results[0].repaired_ohlc_rows == 2
+    assert report.results[0].largest_repaired_ohlc_violation_pct == Decimal("0.00000000000002")
+    assert report.results[0].data_quality_status == "PASS"
 
 
 def test_adjusted_price_policy_metadata_is_required(tmp_path: Path) -> None:

@@ -40,7 +40,7 @@ def fake_rows() -> list[tuple[datetime, dict[str, object]]]:
 def test_downloaded_data_is_normalized_and_cached(tmp_path: Path) -> None:
     provider = YahooFinanceDataProvider(
         cache_dir=tmp_path,
-        downloader=lambda symbol, start, end, interval, auto_adjust: FakeFrame(fake_rows()),
+        downloader=lambda symbol, start, end, interval, auto_adjust, repair: FakeFrame(fake_rows()),
         currency_lookup=lambda symbol: "SEK",
     )
 
@@ -60,7 +60,7 @@ def test_downloaded_data_is_normalized_and_cached(tmp_path: Path) -> None:
 def test_downloaded_dataset_metadata_is_written(tmp_path: Path) -> None:
     provider = YahooFinanceDataProvider(
         cache_dir=tmp_path,
-        downloader=lambda symbol, start, end, interval, auto_adjust: FakeFrame(fake_rows()),
+        downloader=lambda symbol, start, end, interval, auto_adjust, repair: FakeFrame(fake_rows()),
         currency_lookup=lambda symbol: "sek",
     )
 
@@ -79,13 +79,24 @@ def test_downloaded_dataset_metadata_is_written(tmp_path: Path) -> None:
     assert metadata.start_date == "2024-01-01"
     assert metadata.end_date == "2024-01-03"
     assert metadata.adjustment_policy == "adjusted"
+    assert metadata.auto_adjust is True
+    assert metadata.yfinance_repair is False
+    assert metadata.ohlc_normalization_policy == "yahoo_rounding_tolerance"
+    assert metadata.repaired_ohlc_rows == 0
 
 
 def test_adjusted_price_policy_is_passed_to_downloader(tmp_path: Path) -> None:
-    observed_auto_adjust: list[bool] = []
+    observed_settings: list[tuple[bool, bool]] = []
 
-    def fake_download(symbol: str, start: datetime, end: datetime, interval: str, auto_adjust: bool) -> FakeFrame:
-        observed_auto_adjust.append(auto_adjust)
+    def fake_download(
+        symbol: str,
+        start: datetime,
+        end: datetime,
+        interval: str,
+        auto_adjust: bool,
+        repair: bool,
+    ) -> FakeFrame:
+        observed_settings.append((auto_adjust, repair))
         return FakeFrame(fake_rows())
 
     provider = YahooFinanceDataProvider(
@@ -97,13 +108,13 @@ def test_adjusted_price_policy_is_passed_to_downloader(tmp_path: Path) -> None:
 
     provider.download_to_csv(symbol="VOLV-B.ST", start=datetime(2024, 1, 1), end=datetime(2024, 1, 3))
 
-    assert observed_auto_adjust == [True]
+    assert observed_settings == [(True, False)]
 
 
 def test_empty_download_response_is_rejected(tmp_path: Path) -> None:
     provider = YahooFinanceDataProvider(
         cache_dir=tmp_path,
-        downloader=lambda symbol, start, end, interval, auto_adjust: FakeFrame([]),
+        downloader=lambda symbol, start, end, interval, auto_adjust, repair: FakeFrame([]),
         currency_lookup=lambda symbol: "SEK",
     )
 
@@ -114,7 +125,7 @@ def test_empty_download_response_is_rejected(tmp_path: Path) -> None:
 def test_missing_ohlcv_value_is_rejected(tmp_path: Path) -> None:
     provider = YahooFinanceDataProvider(
         cache_dir=tmp_path,
-        downloader=lambda symbol, start, end, interval, auto_adjust: FakeFrame(
+        downloader=lambda symbol, start, end, interval, auto_adjust, repair: FakeFrame(
             [(datetime(2024, 1, 1), {"Open": "100", "High": "101", "Low": "99", "Close": None, "Volume": "1000"})]
         ),
         currency_lookup=lambda symbol: "SEK",
@@ -127,7 +138,7 @@ def test_missing_ohlcv_value_is_rejected(tmp_path: Path) -> None:
 def test_duplicate_download_timestamps_are_rejected(tmp_path: Path) -> None:
     provider = YahooFinanceDataProvider(
         cache_dir=tmp_path,
-        downloader=lambda symbol, start, end, interval, auto_adjust: FakeFrame(
+        downloader=lambda symbol, start, end, interval, auto_adjust, repair: FakeFrame(
             [
                 (datetime(2024, 1, 1), {"Open": "100", "High": "101", "Low": "99", "Close": "100", "Volume": "1000"}),
                 (datetime(2024, 1, 1), {"Open": "101", "High": "102", "Low": "100", "Close": "101", "Volume": "1000"}),
@@ -141,7 +152,14 @@ def test_duplicate_download_timestamps_are_rejected(tmp_path: Path) -> None:
 
 
 def test_network_download_error_is_reported(tmp_path: Path) -> None:
-    def failing_download(symbol: str, start: datetime, end: datetime, interval: str, auto_adjust: bool) -> FakeFrame:
+    def failing_download(
+        symbol: str,
+        start: datetime,
+        end: datetime,
+        interval: str,
+        auto_adjust: bool,
+        repair: bool,
+    ) -> FakeFrame:
         raise OSError("network unavailable")
 
     provider = YahooFinanceDataProvider(
@@ -190,3 +208,96 @@ def test_existing_csv_research_command_still_works(capsys: pytest.CaptureFixture
     output = capsys.readouterr().out
     assert "TradingBot EMA 20/50 historical research" in output
     assert "Full History" in output
+
+
+def test_tiny_high_violation_is_repaired_and_open_close_unchanged(tmp_path: Path) -> None:
+    provider = YahooFinanceDataProvider(
+        cache_dir=tmp_path,
+        downloader=lambda symbol, start, end, interval, auto_adjust, repair: FakeFrame(
+            [
+                (
+                    datetime(2024, 1, 1),
+                    {
+                        "Open": "100",
+                        "High": "100.99999999999999",
+                        "Low": "99",
+                        "Close": "101",
+                        "Volume": "1000",
+                    },
+                )
+            ]
+        ),
+        currency_lookup=lambda symbol: "SEK",
+    )
+
+    csv_path = provider.download_to_csv(symbol="ABC", start=datetime(2024, 1, 1), end=datetime(2024, 1, 2))
+    candle = load_csv_candles(csv_path, "ABC")[0]
+    metadata = load_dataset_metadata(csv_path)
+
+    assert candle.open == Decimal("100")
+    assert candle.close == Decimal("101")
+    assert candle.high == Decimal("101")
+    assert metadata is not None
+    assert metadata.repaired_ohlc_rows == 1
+    assert Decimal(metadata.largest_repaired_ohlc_violation_pct) > 0
+
+
+def test_tiny_low_violation_is_repaired_without_changing_open_close(tmp_path: Path) -> None:
+    provider = YahooFinanceDataProvider(
+        cache_dir=tmp_path,
+        downloader=lambda symbol, start, end, interval, auto_adjust, repair: FakeFrame(
+            [
+                (
+                    datetime(2024, 1, 1),
+                    {
+                        "Open": "100",
+                        "High": "101",
+                        "Low": "99.00000000000001",
+                        "Close": "99",
+                        "Volume": "1000",
+                    },
+                )
+            ]
+        ),
+        currency_lookup=lambda symbol: "SEK",
+    )
+
+    csv_path = provider.download_to_csv(symbol="ABC", start=datetime(2024, 1, 1), end=datetime(2024, 1, 2))
+    candle = load_csv_candles(csv_path, "ABC")[0]
+
+    assert candle.open == Decimal("100")
+    assert candle.close == Decimal("99")
+    assert candle.low == Decimal("99")
+
+
+def test_large_yahoo_ohlc_violation_is_rejected(tmp_path: Path) -> None:
+    provider = YahooFinanceDataProvider(
+        cache_dir=tmp_path,
+        downloader=lambda symbol, start, end, interval, auto_adjust, repair: FakeFrame(
+            [
+                (
+                    datetime(2024, 1, 1),
+                    {"Open": "100", "High": "100", "Low": "99", "Close": "105", "Volume": "1000"},
+                )
+            ]
+        ),
+        currency_lookup=lambda symbol: "SEK",
+    )
+
+    with pytest.raises(ValueError, match="exceeds repair tolerance"):
+        provider.download_to_csv(symbol="ABC", start=datetime(2024, 1, 1), end=datetime(2024, 1, 2))
+
+
+def test_core_candle_validation_remains_strict() -> None:
+    from trading_bot.data.models import Candle
+
+    with pytest.raises(ValueError, match="high"):
+        Candle(
+            symbol="ABC",
+            timestamp=datetime(2024, 1, 1),
+            open=Decimal("100"),
+            high=Decimal("99"),
+            low=Decimal("98"),
+            close=Decimal("100"),
+            volume=Decimal("1000"),
+        )

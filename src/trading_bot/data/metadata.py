@@ -17,6 +17,11 @@ class DatasetMetadata:
     start_date: str
     end_date: str
     adjustment_policy: str = "unknown"
+    auto_adjust: bool | None = None
+    yfinance_repair: bool | None = None
+    ohlc_normalization_policy: str = "strict"
+    repaired_ohlc_rows: int = 0
+    largest_repaired_ohlc_violation_pct: str = "0"
 
     def __post_init__(self) -> None:
         if not self.symbol:
@@ -29,6 +34,10 @@ class DatasetMetadata:
             raise ValueError("interval is required")
         if self.adjustment_policy not in {"adjusted", "unadjusted", "unknown"}:
             raise ValueError("adjustment_policy must be adjusted, unadjusted, or unknown")
+        if self.ohlc_normalization_policy not in {"strict", "yahoo_rounding_tolerance"}:
+            raise ValueError("ohlc_normalization_policy must be strict or yahoo_rounding_tolerance")
+        if self.repaired_ohlc_rows < 0:
+            raise ValueError("repaired_ohlc_rows cannot be negative")
         _parse_date(self.start_date, "start_date")
         _parse_date(self.end_date, "end_date")
 

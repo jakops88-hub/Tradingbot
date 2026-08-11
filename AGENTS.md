@@ -30,6 +30,7 @@ Core boundaries:
 - Raise clear exceptions for invalid state; do not silently swallow errors.
 - Keep live broker integrations, credentials, API keys, and real financial transactions out of the codebase.
 - Keep external data adapters isolated from core backtest and research layers.
+- Keep Yahoo-specific OHLC repairs inside `YahooFinanceDataProvider`; core `Candle` and CSV validation must remain strict.
 - Risk must never increase because a portfolio is behind a user goal; goals are tracking only.
 
 ## Test Command

@@ -128,6 +128,8 @@ reports/market_sweep.txt
 
 Locked sweep settings are `1000 SEK`, `MEDIUM` risk, `0.1%` percentage fee, `0.1%` slippage, `5%` initial stop loss, adjusted prices, and daily candles from `2018-01-01` to `2026-01-01`.
 
+Yahoo Finance data uses `auto_adjust=True` and explicitly sets `repair=False` because yfinance's repair path may require optional SciPy support. TradingBot applies its own Yahoo-only OHLC ordering repair for tiny adjusted-price rounding artifacts up to `0.000001%` of price. Core `Candle` validation and local CSV validation remain strict. The market sweep report includes a Data Quality section with candle counts, repaired OHLC rows, largest repaired violation, and pass/fail status per symbol.
+
 Run EMA 20/50 research against a local OHLCV CSV:
 
 ```powershell

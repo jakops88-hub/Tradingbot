@@ -35,6 +35,10 @@ class MarketSweepInstrumentResult:
     win_rate: Decimal
     average_exposure_pct: Decimal
     adjustment_policy: str
+    candle_count: int
+    repaired_ohlc_rows: int
+    largest_repaired_ohlc_violation_pct: Decimal
+    data_quality_status: str
 
 
 @dataclass(frozen=True)
@@ -147,6 +151,12 @@ class MarketSweepEvaluator:
             win_rate=result.win_rate,
             average_exposure_pct=result.average_portfolio_exposure_pct,
             adjustment_policy=adjustment_policy,
+            candle_count=len(candles),
+            repaired_ohlc_rows=metadata.repaired_ohlc_rows if metadata else 0,
+            largest_repaired_ohlc_violation_pct=Decimal(
+                metadata.largest_repaired_ohlc_violation_pct if metadata else "0"
+            ),
+            data_quality_status="PASS",
         )
 
 

@@ -1,0 +1,63 @@
+TradingBot one-click market sweep report
+Symbols: config\swedish_large_caps.txt
+Period: 2018-01-01 to 2026-01-01
+Starting capital per instrument: 1000 SEK
+Risk profile: MEDIUM
+Percentage fee: 0.1%
+Slippage: 0.1%
+Adjustment policy: adjusted
+
+TradingBot locked EMA 20/50 Swedish large-cap market sweep
+This is a historical simulation, not evidence of future profitability.
+Period: 2018-01-01 to 2026-01-01
+Adjustment policy: adjusted
+Locked settings: EMA 20/50, 5% stop, MEDIUM risk, 1000 SEK, 0.1% fee, 0.1% slippage
+
+Symbol          Strategy    Buy&Hold      Diff    Max DD  Trades   Stops     Win   Avg Exp      Ending
+VOLV-B.ST        +16.41%    +209.49%  -193.09%     6.20%      38       9  31.58%    20.02%     1164.08
+ERIC-B.ST         +9.58%    +109.12%   -99.54%    11.81%      48      14  29.17%    20.02%     1095.78
+SEB-A.ST          +2.26%    +222.50%  -220.24%     9.38%      42      14  19.05%    20.02%     1022.58
+SHB-A.ST          -3.27%    +114.65%  -117.91%     9.33%      34       7  29.41%    20.02%      967.35
+SWED-A.ST         +2.20%    +178.22%  -176.03%    10.05%      44      12  27.27%    20.02%     1022.00
+HM-B.ST           -2.21%     +54.77%   -56.98%    11.94%      50      19  16.00%    20.02%      977.91
+ATCO-A.ST         +7.33%    +194.41%  -187.08%     7.40%      40      11  35.00%    20.02%     1073.34
+INVE-B.ST        +19.06%    +320.22%  -301.16%     6.03%      42       4  42.86%    20.02%     1190.63
+ASSA-B.ST         +2.90%    +143.81%  -140.90%     5.87%      38       9  36.84%    20.02%     1029.02
+SAND.ST           -9.90%    +161.27%  -171.17%    11.66%      64      16  18.75%    20.02%      901.04
+
+Data Quality
+Symbol         Candles    Repaired    Largest Repair    Status
+VOLV-B.ST         2008           6         2.16E-14%      PASS
+ERIC-B.ST         2008           1         1.59E-14%      PASS
+SEB-A.ST          2008           9         1.76E-14%      PASS
+SHB-A.ST          2008          29         2.13E-14%      PASS
+SWED-A.ST         2008           7         2.16E-14%      PASS
+HM-B.ST           2008           2         9.77E-15%      PASS
+ATCO-A.ST         2008           0                0%      PASS
+INVE-B.ST         2008           0                0%      PASS
+ASSA-B.ST         2008           0                0%      PASS
+SAND.ST           2008           1         7.97E-15%      PASS
+
+Cross-market summary
+Profitable instruments: 7
+Losing instruments: 3
+Average strategy return: +4.44%
+Median strategy return: +2.58%
+Average buy & hold return: +170.85%
+Average max drawdown: 8.97%
+Best strategy instrument: INVE-B.ST
+Worst strategy instrument: SAND.ST
+Strategy beat buy & hold count: 0
+
+Ranking
+ 1. INVE-B.ST       +19.06%
+ 2. VOLV-B.ST       +16.41%
+ 3. ERIC-B.ST        +9.58%
+ 4. ATCO-A.ST        +7.33%
+ 5. ASSA-B.ST        +2.90%
+ 6. SEB-A.ST         +2.26%
+ 7. SWED-A.ST        +2.20%
+ 8. HM-B.ST          -2.21%
+ 9. SHB-A.ST         -3.27%
+10. SAND.ST          -9.90%
+Real-money trading: unavailable
