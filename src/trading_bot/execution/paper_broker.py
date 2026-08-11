@@ -46,6 +46,9 @@ class PaperBroker(Broker):
         fixed_fee = self.cost_config.fixed_fee
         total_fee = percentage_fee + fixed_fee
         slippage_cost = abs(fill_price - market_price) * order.quantity
+        monetary_risk = Decimal("0")
+        if order.side == OrderSide.BUY and order.stop_loss_price is not None:
+            monetary_risk = abs(fill_price - order.stop_loss_price) * order.quantity
 
         return Trade(
             symbol=order.symbol,
@@ -58,4 +61,7 @@ class PaperBroker(Broker):
             percentage_fee=percentage_fee,
             fixed_fee=fixed_fee,
             slippage_cost=slippage_cost,
+            stop_loss_price=order.stop_loss_price,
+            monetary_risk=monetary_risk,
+            exit_reason=order.exit_reason,
         )

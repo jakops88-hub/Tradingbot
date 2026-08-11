@@ -26,7 +26,14 @@ class BuyFirstSellSecondStrategy(Strategy):
             action = SignalAction.SELL
         else:
             action = SignalAction.HOLD
-        return Signal(candles[-1].symbol, action, candles[-1].timestamp)
+        return Signal(
+            candles[-1].symbol,
+            action,
+            candles[-1].timestamp,
+            stop_loss_price=candles[-1].close * Decimal("0.95")
+            if action == SignalAction.BUY
+            else None,
+        )
 
 
 def make_candle(timestamp: datetime, close: str) -> Candle:
@@ -77,8 +84,8 @@ def test_independent_yearly_periods_start_with_fresh_capital() -> None:
         Decimal("1000"),
     ]
     assert [period.ending_capital for period in report.period_results] == [
-        Decimal("1001.0"),
-        Decimal("999.0"),
+        Decimal("1020.00000000"),
+        Decimal("990.0000000000"),
     ]
     assert [period.total_trades for period in report.period_results] == [2, 2]
 
@@ -87,8 +94,8 @@ def test_research_aggregate_metrics_and_best_worst_periods() -> None:
     report = make_evaluator().evaluate(research_candles(), yearly_periods(research_candles()))
     aggregate = report.aggregate
 
-    assert aggregate.average_strategy_return_pct == Decimal("0.0")
-    assert aggregate.median_strategy_return_pct == Decimal("0.0")
+    assert aggregate.average_strategy_return_pct == Decimal("0.5000000000")
+    assert aggregate.median_strategy_return_pct == Decimal("0.5000000000")
     assert aggregate.average_benchmark_return_pct == Decimal("0.0")
     assert aggregate.profitable_periods == 1
     assert aggregate.losing_periods == 1
@@ -96,7 +103,7 @@ def test_research_aggregate_metrics_and_best_worst_periods() -> None:
     assert aggregate.best_period.period.label == "2020"
     assert aggregate.worst_period is not None
     assert aggregate.worst_period.period.label == "2021"
-    assert aggregate.average_max_drawdown == Decimal("0.0005")
+    assert aggregate.average_max_drawdown == Decimal("0.005")
     assert aggregate.total_trades == 4
 
 
@@ -105,7 +112,7 @@ def test_full_history_evaluation_is_distinct_from_independent_periods() -> None:
 
     assert report.full_history.period.label == "Full History"
     assert report.full_history.total_trades == 2
-    assert report.full_history.ending_capital == Decimal("1001.0")
+    assert report.full_history.ending_capital == Decimal("1020.00000000")
     assert sum(period.total_trades for period in report.period_results) == 4
 
 

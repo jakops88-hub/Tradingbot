@@ -36,6 +36,7 @@ class Portfolio:
             self.cash = cash_after_trade
             position.quantity = new_quantity
             position.average_price = total_cost / new_quantity
+            position.stop_loss_price = trade.stop_loss_price
             return
 
         if trade.quantity > position.quantity:
@@ -46,6 +47,7 @@ class Portfolio:
         position.quantity -= trade.quantity
         if position.quantity == 0:
             position.average_price = Decimal("0")
+            position.stop_loss_price = None
 
     def positions_value(self, prices: dict[str, Decimal]) -> Decimal:
         return sum(

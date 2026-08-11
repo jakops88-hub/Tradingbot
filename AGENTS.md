@@ -16,7 +16,7 @@ Core boundaries:
 
 - `data`: market-data provider interfaces, historical CSV loading, optional external historical adapters, dataset metadata, and typed market/domain models.
 - `strategies`: strategy interface and offline strategies; strategies emit signals and never send orders.
-- `risk`: risk profiles, position sizing, and signal-to-order approval.
+- `risk`: risk profiles, stop-loss based position sizing, and signal-to-order approval.
 - `execution`: broker interface and paper broker implementation.
 - `portfolio`: cash, positions, realized PnL, and snapshots.
 - `backtest`: orchestration of the full offline trading flow.

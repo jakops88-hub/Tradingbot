@@ -42,6 +42,12 @@ class BacktestResult:
     total_fees_paid: Decimal
     total_execution_costs: Decimal
     profit_factor: Decimal | None
+    average_position_value: Decimal
+    average_portfolio_exposure_pct: Decimal
+    largest_position_value: Decimal
+    maximum_portfolio_exposure_pct: Decimal
+    stop_loss_exits: int
+    average_monetary_risk_at_entry: Decimal
     equity_curve: list[Decimal]
     trade_log: list[Trade]
 
@@ -84,11 +90,20 @@ class BacktestEngine:
         equity_curve: list[Decimal] = []
         trade_log: list[Trade] = []
         closed_trade_pnls: list[Decimal] = []
+        position_values_at_entry: list[Decimal] = []
+        exposure_pcts_at_entry: list[Decimal] = []
+        monetary_risks_at_entry: list[Decimal] = []
 
         for index in range(len(sorted_candles)):
             window = sorted_candles[: index + 1]
             latest = window[-1]
             prices = {latest.symbol: latest.close}
+            self._execute_stop_losses(
+                portfolio=portfolio,
+                candle=latest,
+                trade_log=trade_log,
+                closed_trade_pnls=closed_trade_pnls,
+            )
             snapshot = portfolio.snapshot(prices, latest.timestamp)
             signal = self.strategy.generate_signal(window, snapshot)
             decision = self.risk_manager.evaluate_signal(
@@ -113,6 +128,14 @@ class BacktestEngine:
                     closed_trade_pnls.append(
                         (trade.price - average_price_before_trade) * trade.quantity - trade.commission
                     )
+                elif trade.side == OrderSide.BUY:
+                    entry_prices = {trade.symbol: trade.price}
+                    entry_equity = portfolio.equity(entry_prices)
+                    position_value = trade.gross_value
+                    exposure_pct = position_value / entry_equity if entry_equity > 0 else Decimal("0")
+                    position_values_at_entry.append(position_value)
+                    exposure_pcts_at_entry.append(exposure_pct)
+                    monetary_risks_at_entry.append(trade.monetary_risk)
 
             equity_curve.append(portfolio.equity(prices))
 
@@ -164,6 +187,7 @@ class BacktestEngine:
             buy_and_hold_return(sorted_candles[0].close, sorted_candles[-1].close)
             * Decimal("100")
         )
+        stop_loss_exits = sum(1 for trade in trade_log if trade.exit_reason == "stop_loss")
         return BacktestResult(
             starting_capital=self.starting_cash,
             ending_capital=ending_equity,
@@ -186,6 +210,46 @@ class BacktestEngine:
             total_fees_paid=total_fees_paid,
             total_execution_costs=total_execution_costs,
             profit_factor=profit_factor(gross_profit, gross_loss),
+            average_position_value=_average(position_values_at_entry),
+            average_portfolio_exposure_pct=_average(exposure_pcts_at_entry) * Decimal("100"),
+            largest_position_value=max(position_values_at_entry, default=Decimal("0")),
+            maximum_portfolio_exposure_pct=max(exposure_pcts_at_entry, default=Decimal("0")) * Decimal("100"),
+            stop_loss_exits=stop_loss_exits,
+            average_monetary_risk_at_entry=_average(monetary_risks_at_entry),
             equity_curve=equity_curve,
             trade_log=trade_log,
         )
+
+    def _execute_stop_losses(
+        self,
+        *,
+        portfolio: Portfolio,
+        candle: Candle,
+        trade_log: list[Trade],
+        closed_trade_pnls: list[Decimal],
+    ) -> None:
+        for symbol, position in list(portfolio.positions.items()):
+            if symbol != candle.symbol or position.quantity <= 0 or position.stop_loss_price is None:
+                continue
+            if candle.low > position.stop_loss_price:
+                continue
+            average_price_before_trade = position.average_price
+            stop_order = Order(
+                symbol=symbol,
+                side=OrderSide.SELL,
+                quantity=position.quantity,
+                created_at=candle.timestamp,
+                exit_reason="stop_loss",
+            )
+            trade = self.broker.submit_order(stop_order, position.stop_loss_price)
+            portfolio.apply_trade(trade)
+            trade_log.append(trade)
+            closed_trade_pnls.append(
+                (trade.price - average_price_before_trade) * trade.quantity - trade.commission
+            )
+
+
+def _average(values: list[Decimal]) -> Decimal:
+    if not values:
+        return Decimal("0")
+    return sum(values, Decimal("0")) / Decimal(len(values))

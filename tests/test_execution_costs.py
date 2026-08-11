@@ -28,7 +28,14 @@ class BuyThenSellStrategy(Strategy):
             action = SignalAction.SELL
         else:
             action = SignalAction.HOLD
-        return Signal(candles[-1].symbol, action, candles[-1].timestamp)
+        return Signal(
+            candles[-1].symbol,
+            action,
+            candles[-1].timestamp,
+            stop_loss_price=candles[-1].close * Decimal("0.95")
+            if action == SignalAction.BUY
+            else None,
+        )
 
 
 def make_order(side: OrderSide) -> Order:
@@ -142,11 +149,11 @@ def test_backtest_reports_gross_vs_net_pnl_and_benchmark() -> None:
     result = engine.run(make_candles(["100", "110"]))
 
     assert result.total_trades == 2
-    assert result.total_fees_paid == Decimal("2.209900000000")
-    assert result.total_execution_costs == Decimal("2.419900000000")
-    assert result.net_pnl == Decimal("-1.419900000000")
-    assert result.gross_pnl == Decimal("1.000000000000")
-    assert result.realized_pnl == Decimal("-1.419900000000")
+    assert result.total_fees_paid == Decimal("6.198000000000")
+    assert result.total_execution_costs == Decimal("10.398000000000")
+    assert result.net_pnl == Decimal("9.602000000000")
+    assert result.gross_pnl == Decimal("20.000000000000")
+    assert result.realized_pnl == Decimal("9.602000000000")
     assert result.benchmark_return_pct == Decimal("10.0")
-    assert result.strategy_return_pct == Decimal("-0.141990000000")
-    assert result.difference_vs_benchmark_pct == Decimal("-10.141990000000")
+    assert result.strategy_return_pct == Decimal("0.960200000000")
+    assert result.difference_vs_benchmark_pct == Decimal("-9.039800000000")

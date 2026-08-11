@@ -24,6 +24,9 @@ Implemented:
 - Historical research reports across independent yearly periods and full-history runs
 - Optional Yahoo Finance historical data download adapter
 - Normalized CSV cache files with sidecar dataset metadata
+- Risk-based position sizing using entry price, stop-loss price, and risk per trade
+- Stop-loss execution in historical backtests with fees and slippage applied
+- Research diagnostics for position value, exposure, stop-loss exits, and monetary risk at entry
 - Offline pytest coverage for foundational components
 
 Not implemented yet:

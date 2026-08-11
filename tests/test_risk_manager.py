@@ -43,7 +43,7 @@ def test_buy_signal_creates_order_with_profile_limited_size() -> None:
     manager = RiskManager(get_risk_profile(RiskMode.MEDIUM))
 
     decision = manager.evaluate_signal(
-        Signal("ABC", SignalAction.BUY, NOW),
+        Signal("ABC", SignalAction.BUY, NOW, stop_loss_price=Decimal("95")),
         snapshot=make_snapshot(),
         positions={},
         current_price=Decimal("100"),
@@ -52,14 +52,15 @@ def test_buy_signal_creates_order_with_profile_limited_size() -> None:
 
     assert decision.approved
     assert decision.order is not None
-    assert decision.order.quantity == Decimal("0.10000000")
+    assert decision.order.quantity == Decimal("2.00000000")
+    assert decision.order.stop_loss_price == Decimal("95")
 
 
 def test_buy_signal_rejects_when_max_open_positions_reached() -> None:
     manager = RiskManager(get_risk_profile(RiskMode.LOW))
 
     decision = manager.evaluate_signal(
-        Signal("ABC", SignalAction.BUY, NOW),
+        Signal("ABC", SignalAction.BUY, NOW, stop_loss_price=Decimal("95")),
         snapshot=make_snapshot(open_positions=2),
         positions={},
         current_price=Decimal("100"),
@@ -68,6 +69,21 @@ def test_buy_signal_rejects_when_max_open_positions_reached() -> None:
 
     assert not decision.approved
     assert decision.order is None
+
+
+def test_buy_signal_requires_stop_loss_price() -> None:
+    manager = RiskManager(get_risk_profile(RiskMode.MEDIUM))
+
+    decision = manager.evaluate_signal(
+        Signal("ABC", SignalAction.BUY, NOW),
+        snapshot=make_snapshot(),
+        positions={},
+        current_price=Decimal("100"),
+        starting_equity=Decimal("1000"),
+    )
+
+    assert not decision.approved
+    assert decision.reason == "buy signals require stop_loss_price"
 
 
 def test_sell_signal_creates_order_from_existing_position() -> None:
@@ -90,7 +106,7 @@ def test_drawdown_limit_blocks_new_orders() -> None:
     manager = RiskManager(get_risk_profile(RiskMode.LOW))
 
     decision = manager.evaluate_signal(
-        Signal("ABC", SignalAction.BUY, NOW),
+        Signal("ABC", SignalAction.BUY, NOW, stop_loss_price=Decimal("95")),
         snapshot=make_snapshot(cash=Decimal("910")),
         positions={},
         current_price=Decimal("100"),

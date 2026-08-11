@@ -33,6 +33,12 @@ class PeriodResult:
     net_pnl: Decimal
     max_drawdown: Decimal
     profit_factor: Decimal | None
+    average_position_value: Decimal
+    average_portfolio_exposure_pct: Decimal
+    largest_position_value: Decimal
+    maximum_portfolio_exposure_pct: Decimal
+    stop_loss_exits: int
+    average_monetary_risk_at_entry: Decimal
 
     @classmethod
     def from_backtest(cls, period: ResearchPeriod, result: BacktestResult) -> "PeriodResult":
@@ -48,6 +54,12 @@ class PeriodResult:
             net_pnl=result.net_pnl,
             max_drawdown=result.max_drawdown,
             profit_factor=result.profit_factor,
+            average_position_value=result.average_position_value,
+            average_portfolio_exposure_pct=result.average_portfolio_exposure_pct,
+            largest_position_value=result.largest_position_value,
+            maximum_portfolio_exposure_pct=result.maximum_portfolio_exposure_pct,
+            stop_loss_exits=result.stop_loss_exits,
+            average_monetary_risk_at_entry=result.average_monetary_risk_at_entry,
         )
 
 

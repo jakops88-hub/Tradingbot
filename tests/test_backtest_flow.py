@@ -26,6 +26,9 @@ class ScriptedStrategy(Strategy):
             symbol=candles[-1].symbol,
             action=action,
             generated_at=candles[-1].timestamp,
+            stop_loss_price=candles[-1].close * Decimal("0.95")
+            if action == SignalAction.BUY
+            else None,
         )
 
 
@@ -57,4 +60,4 @@ def test_backtest_preserves_signal_risk_broker_portfolio_flow() -> None:
 
     assert result.trades == 2
     assert len(result.equity_curve) == 3
-    assert result.ending_equity == Decimal("1002.00000000")
+    assert result.ending_equity == Decimal("1040.00000000")

@@ -63,12 +63,15 @@ class RiskManager:
             existing_position = positions.get(signal.symbol)
             if existing_position is None and snapshot.open_positions >= self.profile.max_open_positions:
                 return RiskDecision(False, "max open positions reached")
+            if signal.stop_loss_price is None:
+                return RiskDecision(False, "buy signals require stop_loss_price")
 
             quantity = calculate_buy_quantity(
                 cash=snapshot.cash,
                 total_equity=snapshot.total_equity,
                 current_exposure=snapshot.positions_value,
                 price=current_price,
+                stop_loss_price=signal.stop_loss_price,
                 profile=self.profile,
             )
             if quantity <= 0:
@@ -84,6 +87,7 @@ class RiskManager:
                     side=OrderSide.BUY,
                     quantity=quantity,
                     created_at=signal.generated_at,
+                    stop_loss_price=signal.stop_loss_price,
                 ),
             )
 

@@ -126,6 +126,14 @@ def print_research_report(report: ResearchReport) -> None:
     for skipped in report.skipped_periods:
         print(f"{skipped.period.label:<12}{'skipped':>12}  {skipped.reason}")
     print("")
+    print("Diagnostics")
+    print(f"Average position value: {report.full_history.average_position_value} SEK")
+    print(f"Average portfolio exposure: {report.full_history.average_portfolio_exposure_pct.quantize(Decimal('0.01'))}%")
+    print(f"Largest position value: {report.full_history.largest_position_value} SEK")
+    print(f"Maximum portfolio exposure: {report.full_history.maximum_portfolio_exposure_pct.quantize(Decimal('0.01'))}%")
+    print(f"Stop-loss exits: {report.full_history.stop_loss_exits}")
+    print(f"Average monetary risk at entry: {report.full_history.average_monetary_risk_at_entry} SEK")
+    print("")
     print("Aggregate")
     aggregate = report.aggregate
     print(f"Average strategy return: {_format_pct(aggregate.average_strategy_return_pct)}")

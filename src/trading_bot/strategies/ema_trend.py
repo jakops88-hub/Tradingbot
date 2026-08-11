@@ -15,6 +15,7 @@ from trading_bot.strategies.indicators import exponential_moving_average
 class EMATrendConfig:
     fast_period: int = 20
     slow_period: int = 50
+    stop_loss_pct: Decimal = Decimal("0.05")
 
     def __post_init__(self) -> None:
         if self.fast_period <= 0:
@@ -23,6 +24,8 @@ class EMATrendConfig:
             raise ValueError("slow_period must be positive")
         if self.slow_period <= self.fast_period:
             raise ValueError("slow_period must be greater than fast_period")
+        if not Decimal("0") < self.stop_loss_pct < Decimal("1"):
+            raise ValueError("stop_loss_pct must be between 0 and 1")
 
 
 class EMATrendStrategy(Strategy):
@@ -69,6 +72,9 @@ class EMATrendStrategy(Strategy):
             generated_at=latest.timestamp,
             confidence=_ema_confidence(current_fast, current_slow),
             reason=reason,
+            stop_loss_price=_initial_stop_loss(latest.close, self.config.stop_loss_pct)
+            if action == SignalAction.BUY
+            else None,
         )
 
 
@@ -84,3 +90,7 @@ def _ema_confidence(fast_ema: Decimal, slow_ema: Decimal) -> Decimal:
         return Decimal("0")
     spread = abs((fast_ema - slow_ema) / slow_ema)
     return min(spread, Decimal("1"))
+
+
+def _initial_stop_loss(entry_price: Decimal, stop_loss_pct: Decimal) -> Decimal:
+    return entry_price * (Decimal("1") - stop_loss_pct)
