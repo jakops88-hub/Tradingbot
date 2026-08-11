@@ -21,6 +21,7 @@ Implemented:
 - Buy-and-hold benchmark return comparison for the same historical period
 - Long-only EMA crossover strategy for historical simulation
 - Optional final-candle closing of open backtest positions
+- Historical research reports across independent yearly periods and full-history runs
 - Offline pytest coverage for foundational components
 
 Not implemented yet:
@@ -84,3 +85,11 @@ trading-bot
 ```
 
 The CLI runs a deterministic offline EMA 20/50 historical simulation with starting capital of `1000 SEK`, the `MEDIUM` risk profile, and example execution costs. It is not evidence of future profitability.
+
+Run EMA 20/50 research against a local OHLCV CSV:
+
+```powershell
+python -m trading_bot.app research .\data.csv --symbol ABC --risk MEDIUM
+```
+
+The research command starts each yearly period with a fresh `1000 SEK` portfolio and also prints a separate continuous full-history result.

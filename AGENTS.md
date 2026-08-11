@@ -20,6 +20,7 @@ Core boundaries:
 - `execution`: broker interface and paper broker implementation.
 - `portfolio`: cash, positions, realized PnL, and snapshots.
 - `backtest`: orchestration of the full offline trading flow.
+- `research`: independent multi-period and full-history historical evaluation.
 - `metrics`: performance and goal tracking metrics.
 
 ## Coding Conventions

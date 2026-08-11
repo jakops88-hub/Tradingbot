@@ -68,6 +68,7 @@ def load_csv_candles(path: str | Path, symbol: str) -> list[Candle]:
 
     if not candles:
         raise ValueError(f"No candles found in {source}")
+    _reject_duplicate_timestamps(source, candles)
 
     return sorted(candles, key=lambda candle: candle.timestamp)
 
@@ -102,3 +103,11 @@ def _required_text(row: dict[str, str | None], column: str) -> str:
 
 def _required_decimal(row: dict[str, str | None], column: str) -> Decimal:
     return Decimal(_required_text(row, column))
+
+
+def _reject_duplicate_timestamps(source: Path, candles: Sequence[Candle]) -> None:
+    seen: set[datetime] = set()
+    for candle in candles:
+        if candle.timestamp in seen:
+            raise ValueError(f"Duplicate timestamp in {source}: {candle.timestamp.isoformat()}")
+        seen.add(candle.timestamp)

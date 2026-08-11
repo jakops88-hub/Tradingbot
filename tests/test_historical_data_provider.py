@@ -45,3 +45,8 @@ def test_load_csv_candles_reports_missing_columns(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="Missing columns"):
         load_csv_candles(path, "ABC")
+
+
+def test_load_csv_candles_rejects_duplicate_timestamps() -> None:
+    with pytest.raises(ValueError, match="Duplicate timestamp"):
+        load_csv_candles(FIXTURES / "duplicate_ohlcv.csv", "ABC")
