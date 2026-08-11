@@ -27,6 +27,7 @@ Implemented:
 - Risk-based position sizing using entry price, stop-loss price, and risk per trade
 - Stop-loss execution in historical backtests with fees and slippage applied
 - Research diagnostics for position value, exposure, stop-loss exits, and monetary risk at entry
+- One-click locked EMA 20/50 multi-market sweep for Swedish large-cap symbols
 - Offline pytest coverage for foundational components
 
 Not implemented yet:
@@ -112,6 +113,20 @@ reports/latest_research.txt
 ```
 
 The terminal window stays open when the run completes or fails, so errors can be read.
+
+Run the locked Swedish market sweep by double-clicking:
+
+```text
+run_market_sweep.bat
+```
+
+The sweep uses `config/swedish_large_caps.txt`, downloads adjusted daily OHLCV data, applies the same EMA 20/50 strategy to every instrument independently, and saves the report to:
+
+```text
+reports/market_sweep.txt
+```
+
+Locked sweep settings are `1000 SEK`, `MEDIUM` risk, `0.1%` percentage fee, `0.1%` slippage, `5%` initial stop loss, adjusted prices, and daily candles from `2018-01-01` to `2026-01-01`.
 
 Run EMA 20/50 research against a local OHLCV CSV:
 

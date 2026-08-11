@@ -16,6 +16,12 @@ from trading_bot.data.yahoo_finance import YahooFinanceDataProvider
 from trading_bot.execution.costs import ExecutionCostConfig
 from trading_bot.execution.paper_broker import PaperBroker
 from trading_bot.research.evaluator import ResearchEvaluator, yearly_periods
+from trading_bot.research.market_sweep import (
+    MarketSweepEvaluator,
+    MarketSweepInstrumentResult,
+    MarketSweepReport,
+    load_symbol_config,
+)
 from trading_bot.research.models import PeriodResult, ResearchReport
 from trading_bot.strategies.ema_trend import EMATrendConfig, EMATrendStrategy
 
@@ -43,6 +49,9 @@ DEFAULT_COSTS = ExecutionCostConfig(
     fixed_fee=Decimal("0.05"),
     slippage_percentage=Decimal("0.001"),
 )
+LOCKED_START_DATE = datetime(2018, 1, 1)
+LOCKED_END_DATE = datetime(2026, 1, 1)
+LOCKED_ADJUSTMENT_POLICY = "adjusted"
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -53,6 +62,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.command == "download":
         run_download_command(args)
+        return
+    if args.command == "market-sweep":
+        run_market_sweep_command(args)
         return
 
     run_demo()
@@ -105,7 +117,10 @@ def run_research_command(args: argparse.Namespace) -> None:
 
 
 def run_download_command(args: argparse.Namespace) -> None:
-    provider = YahooFinanceDataProvider(cache_dir=args.output_dir)
+    provider = YahooFinanceDataProvider(
+        cache_dir=args.output_dir,
+        adjustment_policy=args.adjustment_policy,
+    )
     csv_path = provider.download_to_csv(
         symbol=args.symbol,
         start=_parse_date(args.start),
@@ -113,7 +128,44 @@ def run_download_command(args: argparse.Namespace) -> None:
     )
     print(f"Downloaded normalized daily OHLCV data: {csv_path}")
     print(f"Metadata: {csv_path}.metadata.json")
+    print(f"Adjustment policy: {args.adjustment_policy}")
     print("Use this file with the research command.")
+
+
+def run_market_sweep_command(args: argparse.Namespace) -> None:
+    symbols = load_symbol_config(args.symbols)
+    output_dir = Path(args.output_dir)
+    costs = ExecutionCostConfig(
+        percentage_fee=Decimal("0.001"),
+        fixed_fee=Decimal("0"),
+        slippage_percentage=Decimal("0.001"),
+    )
+    provider = YahooFinanceDataProvider(
+        cache_dir=output_dir,
+        adjustment_policy=LOCKED_ADJUSTMENT_POLICY,
+    )
+
+    def fetch_dataset(symbol: str) -> Path:
+        return provider.download_to_csv(
+            symbol=symbol,
+            start=LOCKED_START_DATE,
+            end=LOCKED_END_DATE,
+        )
+
+    evaluator = MarketSweepEvaluator(
+        dataset_fetcher=fetch_dataset,
+        strategy_factory=lambda: EMATrendStrategy(
+            EMATrendConfig(fast_period=20, slow_period=50, stop_loss_pct=Decimal("0.05"))
+        ),
+        broker_factory=lambda: PaperBroker(costs),
+        risk_profile=get_risk_profile(RiskMode.MEDIUM),
+        starting_capital=Decimal("1000"),
+        portfolio_currency="SEK",
+        expected_adjustment_policy=LOCKED_ADJUSTMENT_POLICY,
+        start_date=LOCKED_START_DATE,
+        end_date=LOCKED_END_DATE,
+    )
+    print_market_sweep_report(evaluator.evaluate(symbols))
 
 
 def print_research_report(report: ResearchReport) -> None:
@@ -151,6 +203,58 @@ def print_research_report(report: ResearchReport) -> None:
     print("Real-money trading: unavailable")
 
 
+def print_market_sweep_report(report: MarketSweepReport) -> None:
+    print("TradingBot locked EMA 20/50 Swedish large-cap market sweep")
+    print("This is a historical simulation, not evidence of future profitability.")
+    print(f"Period: {report.start_date.date().isoformat()} to {report.end_date.date().isoformat()}")
+    print(f"Adjustment policy: {report.adjustment_policy}")
+    print("Locked settings: EMA 20/50, 5% stop, MEDIUM risk, 1000 SEK, 0.1% fee, 0.1% slippage")
+    print("")
+    print(
+        f"{'Symbol':<12}{'Strategy':>12}{'Buy&Hold':>12}{'Diff':>10}"
+        f"{'Max DD':>10}{'Trades':>8}{'Stops':>8}{'Win':>8}{'Avg Exp':>10}{'Ending':>12}"
+    )
+    for result in report.results:
+        print(_market_sweep_row(result))
+    if report.failures:
+        print("")
+        print("Failed symbols")
+        for failure in report.failures:
+            print(f"{failure.symbol}: {failure.reason}")
+    print("")
+    print("Cross-market summary")
+    summary = report.summary
+    print(f"Profitable instruments: {summary.profitable_instruments}")
+    print(f"Losing instruments: {summary.losing_instruments}")
+    print(f"Average strategy return: {_format_pct(summary.average_strategy_return_pct)}")
+    print(f"Median strategy return: {_format_pct(summary.median_strategy_return_pct)}")
+    print(f"Average buy & hold return: {_format_pct(summary.average_benchmark_return_pct)}")
+    print(f"Average max drawdown: {_format_pct(summary.average_max_drawdown * Decimal('100'), signed=False)}")
+    print(f"Best strategy instrument: {summary.best_strategy_instrument.symbol if summary.best_strategy_instrument else 'n/a'}")
+    print(f"Worst strategy instrument: {summary.worst_strategy_instrument.symbol if summary.worst_strategy_instrument else 'n/a'}")
+    print(f"Strategy beat buy & hold count: {summary.strategy_beats_buy_and_hold_count}")
+    print("")
+    print("Ranking")
+    for index, result in enumerate(report.ranking, start=1):
+        print(f"{index:>2}. {result.symbol:<12} {_format_pct(result.strategy_return_pct):>10}")
+    print("Real-money trading: unavailable")
+
+
+def _market_sweep_row(result: MarketSweepInstrumentResult) -> str:
+    return (
+        f"{result.symbol:<12}"
+        f"{_format_pct(result.strategy_return_pct):>12}"
+        f"{_format_pct(result.benchmark_return_pct):>12}"
+        f"{_format_pct(result.difference_vs_benchmark_pct):>10}"
+        f"{_format_pct(result.max_drawdown * Decimal('100'), signed=False):>10}"
+        f"{result.total_trades:>8}"
+        f"{result.stop_loss_exits:>8}"
+        f"{_format_pct(result.win_rate * Decimal('100'), signed=False):>8}"
+        f"{_format_pct(result.average_exposure_pct, signed=False):>10}"
+        f"{result.ending_capital.quantize(Decimal('0.01')):>12}"
+    )
+
+
 def _period_row(result: PeriodResult) -> str:
     return (
         f"{result.period.label:<12}"
@@ -183,6 +287,15 @@ def _build_parser() -> argparse.ArgumentParser:
     download.add_argument("--start", required=True, help="Start date, YYYY-MM-DD")
     download.add_argument("--end", required=True, help="End date, YYYY-MM-DD")
     download.add_argument("--output-dir", default="data", help="Directory for normalized CSV cache")
+    download.add_argument(
+        "--adjustment-policy",
+        default=LOCKED_ADJUSTMENT_POLICY,
+        choices=["adjusted", "unadjusted"],
+        help="Use adjusted OHLC prices by default for equity research",
+    )
+    market_sweep = subparsers.add_parser("market-sweep", help="Run locked EMA 20/50 sweep across configured Swedish symbols")
+    market_sweep.add_argument("--symbols", default="config/swedish_large_caps.txt")
+    market_sweep.add_argument("--output-dir", default="data")
     return parser
 
 

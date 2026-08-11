@@ -40,7 +40,7 @@ def fake_rows() -> list[tuple[datetime, dict[str, object]]]:
 def test_downloaded_data_is_normalized_and_cached(tmp_path: Path) -> None:
     provider = YahooFinanceDataProvider(
         cache_dir=tmp_path,
-        downloader=lambda symbol, start, end, interval: FakeFrame(fake_rows()),
+        downloader=lambda symbol, start, end, interval, auto_adjust: FakeFrame(fake_rows()),
         currency_lookup=lambda symbol: "SEK",
     )
 
@@ -60,7 +60,7 @@ def test_downloaded_data_is_normalized_and_cached(tmp_path: Path) -> None:
 def test_downloaded_dataset_metadata_is_written(tmp_path: Path) -> None:
     provider = YahooFinanceDataProvider(
         cache_dir=tmp_path,
-        downloader=lambda symbol, start, end, interval: FakeFrame(fake_rows()),
+        downloader=lambda symbol, start, end, interval, auto_adjust: FakeFrame(fake_rows()),
         currency_lookup=lambda symbol: "sek",
     )
 
@@ -78,12 +78,32 @@ def test_downloaded_dataset_metadata_is_written(tmp_path: Path) -> None:
     assert metadata.interval == "1d"
     assert metadata.start_date == "2024-01-01"
     assert metadata.end_date == "2024-01-03"
+    assert metadata.adjustment_policy == "adjusted"
+
+
+def test_adjusted_price_policy_is_passed_to_downloader(tmp_path: Path) -> None:
+    observed_auto_adjust: list[bool] = []
+
+    def fake_download(symbol: str, start: datetime, end: datetime, interval: str, auto_adjust: bool) -> FakeFrame:
+        observed_auto_adjust.append(auto_adjust)
+        return FakeFrame(fake_rows())
+
+    provider = YahooFinanceDataProvider(
+        cache_dir=tmp_path,
+        adjustment_policy="adjusted",
+        downloader=fake_download,
+        currency_lookup=lambda symbol: "SEK",
+    )
+
+    provider.download_to_csv(symbol="VOLV-B.ST", start=datetime(2024, 1, 1), end=datetime(2024, 1, 3))
+
+    assert observed_auto_adjust == [True]
 
 
 def test_empty_download_response_is_rejected(tmp_path: Path) -> None:
     provider = YahooFinanceDataProvider(
         cache_dir=tmp_path,
-        downloader=lambda symbol, start, end, interval: FakeFrame([]),
+        downloader=lambda symbol, start, end, interval, auto_adjust: FakeFrame([]),
         currency_lookup=lambda symbol: "SEK",
     )
 
@@ -94,7 +114,7 @@ def test_empty_download_response_is_rejected(tmp_path: Path) -> None:
 def test_missing_ohlcv_value_is_rejected(tmp_path: Path) -> None:
     provider = YahooFinanceDataProvider(
         cache_dir=tmp_path,
-        downloader=lambda symbol, start, end, interval: FakeFrame(
+        downloader=lambda symbol, start, end, interval, auto_adjust: FakeFrame(
             [(datetime(2024, 1, 1), {"Open": "100", "High": "101", "Low": "99", "Close": None, "Volume": "1000"})]
         ),
         currency_lookup=lambda symbol: "SEK",
@@ -107,7 +127,7 @@ def test_missing_ohlcv_value_is_rejected(tmp_path: Path) -> None:
 def test_duplicate_download_timestamps_are_rejected(tmp_path: Path) -> None:
     provider = YahooFinanceDataProvider(
         cache_dir=tmp_path,
-        downloader=lambda symbol, start, end, interval: FakeFrame(
+        downloader=lambda symbol, start, end, interval, auto_adjust: FakeFrame(
             [
                 (datetime(2024, 1, 1), {"Open": "100", "High": "101", "Low": "99", "Close": "100", "Volume": "1000"}),
                 (datetime(2024, 1, 1), {"Open": "101", "High": "102", "Low": "100", "Close": "101", "Volume": "1000"}),
@@ -121,7 +141,7 @@ def test_duplicate_download_timestamps_are_rejected(tmp_path: Path) -> None:
 
 
 def test_network_download_error_is_reported(tmp_path: Path) -> None:
-    def failing_download(symbol: str, start: datetime, end: datetime, interval: str) -> FakeFrame:
+    def failing_download(symbol: str, start: datetime, end: datetime, interval: str, auto_adjust: bool) -> FakeFrame:
         raise OSError("network unavailable")
 
     provider = YahooFinanceDataProvider(

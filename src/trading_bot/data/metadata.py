@@ -16,6 +16,7 @@ class DatasetMetadata:
     interval: str
     start_date: str
     end_date: str
+    adjustment_policy: str = "unknown"
 
     def __post_init__(self) -> None:
         if not self.symbol:
@@ -26,6 +27,8 @@ class DatasetMetadata:
             raise ValueError("source is required")
         if not self.interval:
             raise ValueError("interval is required")
+        if self.adjustment_policy not in {"adjusted", "unadjusted", "unknown"}:
+            raise ValueError("adjustment_policy must be adjusted, unadjusted, or unknown")
         _parse_date(self.start_date, "start_date")
         _parse_date(self.end_date, "end_date")
 

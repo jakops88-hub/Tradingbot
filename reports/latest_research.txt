@@ -1,0 +1,45 @@
+TradingBot one-click research report
+Symbol: VOLV-B.ST
+Date range: 2018-01-01 to 2026-01-01
+Starting capital: 1000 SEK
+Risk profile: MEDIUM
+Percentage fee: 0.1%
+Fixed fee: 0 SEK
+Slippage: 0.1%
+Source data: data\VOLV-B.ST_daily.csv
+
+TradingBot EMA 20/50 historical research
+This is a historical simulation, not evidence of future profitability.
+
+Period          Strategy    Buy&Hold    Difference  Trades    Max DD
+2018              -4.24%     -25.10%       +20.85%       8     4.24%
+2019              -0.62%     +35.96%       -36.58%       6     3.00%
+2020              +7.92%     +20.56%       -12.64%       2     2.38%
+2021              -2.87%      +6.10%        -8.97%       8     2.98%
+2022              +0.24%     -11.66%       +11.90%       4     1.86%
+2023              +1.61%     +36.39%       -34.77%       6     1.79%
+2024              -1.77%      +3.21%        -4.98%       4     1.96%
+2025              -0.26%      +9.67%        -9.93%       4     1.38%
+
+Diagnostics
+Average position value: 199.3831118437762984127003590 SEK
+Average portfolio exposure: 20.02%
+Largest position value: 208.6906641860961989141979906 SEK
+Maximum portfolio exposure: 20.02%
+Stop-loss exits: 14
+Average monetary risk at entry: 10.1583803237088823367110073 SEK
+
+Aggregate
+Average strategy return: +0.00%
+Median strategy return: -0.44%
+Average buy & hold return: +9.39%
+Profitable periods: 3
+Losing periods: 5
+Best period: 2020
+Worst period: 2018
+Average max drawdown: 2.45%
+Total trades: 42
+
+Full History
+Full History      +1.27%     +91.15%       -89.88%      48     9.63%
+Real-money trading: unavailable

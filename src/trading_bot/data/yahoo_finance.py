@@ -17,7 +17,7 @@ from trading_bot.data.metadata import DatasetMetadata, save_dataset_metadata
 from trading_bot.data.models import Candle
 
 
-DownloadFn = Callable[[str, datetime, datetime, str], Any]
+DownloadFn = Callable[[str, datetime, datetime, str, bool], Any]
 CurrencyFn = Callable[[str], str | None]
 
 
@@ -26,10 +26,14 @@ class YahooFinanceDataProvider(MarketDataProvider):
         self,
         cache_dir: str | Path = "data",
         *,
+        adjustment_policy: str = "adjusted",
         downloader: DownloadFn | None = None,
         currency_lookup: CurrencyFn | None = None,
     ) -> None:
+        if adjustment_policy not in {"adjusted", "unadjusted"}:
+            raise ValueError("adjustment_policy must be adjusted or unadjusted")
         self.cache_dir = Path(cache_dir)
+        self.adjustment_policy = adjustment_policy
         self.downloader = downloader or _download_with_yfinance
         self.currency_lookup = currency_lookup or _lookup_currency_with_yfinance
 
@@ -58,7 +62,13 @@ class YahooFinanceDataProvider(MarketDataProvider):
             raise ValueError("only daily interval '1d' is currently supported")
 
         try:
-            raw_data = self.downloader(symbol, start, end, interval)
+            raw_data = self.downloader(
+                symbol,
+                start,
+                end,
+                interval,
+                self.adjustment_policy == "adjusted",
+            )
         except Exception as exc:
             raise RuntimeError(f"Failed to download historical data for {symbol}: {exc}") from exc
 
@@ -79,12 +89,19 @@ class YahooFinanceDataProvider(MarketDataProvider):
                 interval="1d",
                 start_date=start.date().isoformat(),
                 end_date=end.date().isoformat(),
+                adjustment_policy=self.adjustment_policy,
             ),
         )
         return csv_path
 
 
-def _download_with_yfinance(symbol: str, start: datetime, end: datetime, interval: str) -> Any:
+def _download_with_yfinance(
+    symbol: str,
+    start: datetime,
+    end: datetime,
+    interval: str,
+    auto_adjust: bool,
+) -> Any:
     try:
         import yfinance as yf
     except ImportError as exc:
@@ -95,7 +112,7 @@ def _download_with_yfinance(symbol: str, start: datetime, end: datetime, interva
         start=start.date().isoformat(),
         end=end.date().isoformat(),
         interval=interval,
-        auto_adjust=False,
+        auto_adjust=auto_adjust,
         progress=False,
         group_by="column",
     )
