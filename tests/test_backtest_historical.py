@@ -60,33 +60,34 @@ def test_complete_historical_backtest_flow_records_expected_metrics() -> None:
     result = engine.run(candles)
 
     assert result.starting_capital == Decimal("1000")
-    assert result.ending_capital == Decimal("1009.8000000000")
-    assert result.total_return == Decimal("0.0098000000")
-    assert result.total_return_pct == Decimal("0.9800000000")
-    assert result.strategy_return_pct == Decimal("0.9800000000")
+    assert result.ending_capital == Decimal("990.00000000")
+    assert result.total_return == Decimal("-0.01000000")
+    assert result.total_return_pct == Decimal("-1.00000000")
+    assert result.strategy_return_pct == Decimal("-1.00000000")
     assert result.benchmark_return_pct == Decimal("-10.0")
-    assert result.difference_vs_benchmark_pct == Decimal("10.9800000000")
+    assert result.difference_vs_benchmark_pct == Decimal("9.00000000")
+    assert result.benchmark_max_drawdown == Decimal("0.1818181818181818181818181818")
     assert result.total_trades == 4
-    assert result.winning_trades == 1
+    assert result.winning_trades == 0
     assert result.losing_trades == 1
-    assert result.win_rate == Decimal("0.5")
-    assert result.realized_pnl == Decimal("9.8000000000")
-    assert result.gross_pnl == Decimal("9.8000000000")
-    assert result.net_pnl == Decimal("9.8000000000")
-    assert result.total_fees_paid == Decimal("0E-10")
-    assert result.total_execution_costs == Decimal("0E-10")
-    assert result.profit_factor == Decimal("1.960784313725490196078431373")
-    assert result.max_drawdown == Decimal("0.01")
-    assert result.average_position_value == Decimal("202.00000000")
-    assert result.average_portfolio_exposure_pct == Decimal("20.0")
-    assert result.largest_position_value == Decimal("204.00000000")
-    assert result.maximum_portfolio_exposure_pct == Decimal("20.0")
+    assert result.win_rate == Decimal("0")
+    assert result.realized_pnl == Decimal("-10.00000000")
+    assert result.gross_pnl == Decimal("-10.00000000")
+    assert result.net_pnl == Decimal("-10.00000000")
+    assert result.total_fees_paid == Decimal("0E-8")
+    assert result.total_execution_costs == Decimal("0E-8")
+    assert result.profit_factor == Decimal("0E+8")
+    assert result.max_drawdown == Decimal("0.0198019801980198019801980198")
+    assert result.average_position_value == Decimal("194.10000000")
+    assert result.average_portfolio_exposure_pct == Decimal("19.500")
+    assert result.largest_position_value == Decimal("210.00000000")
+    assert result.maximum_portfolio_exposure_pct == Decimal("21.00")
     assert result.stop_loss_exits == 1
-    assert result.average_monetary_risk_at_entry == Decimal("10.1000000000")
+    assert result.average_monetary_risk_at_entry == Decimal("14.9500000000")
     assert result.equity_curve == [
+        Decimal("1000"),
         Decimal("1000.00000000"),
         Decimal("1010.00000000"),
-        Decimal("1020.00000000"),
-        Decimal("1020.00000000"),
-        Decimal("1009.8000000000"),
+        Decimal("990.00000000"),
+        Decimal("990.00000000"),
     ]

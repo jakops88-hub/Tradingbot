@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 
 from trading_bot.config.risk_profiles import RiskProfile
@@ -28,6 +28,7 @@ class BacktestResult:
     strategy_return_pct: Decimal
     benchmark_return_pct: Decimal
     difference_vs_benchmark_pct: Decimal
+    benchmark_max_drawdown: Decimal
     max_drawdown: Decimal
     total_trades: int
     winning_trades: int
@@ -93,11 +94,25 @@ class BacktestEngine:
         position_values_at_entry: list[Decimal] = []
         exposure_pcts_at_entry: list[Decimal] = []
         monetary_risks_at_entry: list[Decimal] = []
+        pending_order: Order | None = None
 
         for index in range(len(sorted_candles)):
             window = sorted_candles[: index + 1]
             latest = window[-1]
             prices = {latest.symbol: latest.close}
+            if pending_order is not None:
+                self._execute_order(
+                    portfolio=portfolio,
+                    order=replace(pending_order, created_at=latest.timestamp),
+                    market_price=latest.open,
+                    trade_log=trade_log,
+                    closed_trade_pnls=closed_trade_pnls,
+                    position_values_at_entry=position_values_at_entry,
+                    exposure_pcts_at_entry=exposure_pcts_at_entry,
+                    monetary_risks_at_entry=monetary_risks_at_entry,
+                )
+                pending_order = None
+
             self._execute_stop_losses(
                 portfolio=portfolio,
                 candle=latest,
@@ -115,27 +130,7 @@ class BacktestEngine:
             )
 
             if decision.approved and decision.order is not None:
-                position_before_trade = portfolio.positions.get(decision.order.symbol)
-                average_price_before_trade = (
-                    position_before_trade.average_price
-                    if position_before_trade is not None
-                    else Decimal("0")
-                )
-                trade = self.broker.submit_order(decision.order, latest.close)
-                portfolio.apply_trade(trade)
-                trade_log.append(trade)
-                if trade.side == OrderSide.SELL:
-                    closed_trade_pnls.append(
-                        (trade.price - average_price_before_trade) * trade.quantity - trade.commission
-                    )
-                elif trade.side == OrderSide.BUY:
-                    entry_prices = {trade.symbol: trade.price}
-                    entry_equity = portfolio.equity(entry_prices)
-                    position_value = trade.gross_value
-                    exposure_pct = position_value / entry_equity if entry_equity > 0 else Decimal("0")
-                    position_values_at_entry.append(position_value)
-                    exposure_pcts_at_entry.append(exposure_pct)
-                    monetary_risks_at_entry.append(trade.monetary_risk)
+                pending_order = decision.order
 
             equity_curve.append(portfolio.equity(prices))
 
@@ -187,6 +182,10 @@ class BacktestEngine:
             buy_and_hold_return(sorted_candles[0].close, sorted_candles[-1].close)
             * Decimal("100")
         )
+        benchmark_equity_curve = [
+            self.starting_cash * (candle.close / sorted_candles[0].close)
+            for candle in sorted_candles
+        ]
         stop_loss_exits = sum(1 for trade in trade_log if trade.exit_reason == "stop_loss")
         return BacktestResult(
             starting_capital=self.starting_cash,
@@ -196,6 +195,7 @@ class BacktestEngine:
             strategy_return_pct=strategy_return_pct,
             benchmark_return_pct=benchmark_return_pct,
             difference_vs_benchmark_pct=strategy_return_pct - benchmark_return_pct,
+            benchmark_max_drawdown=max_drawdown(benchmark_equity_curve),
             max_drawdown=max_drawdown(equity_curve),
             total_trades=len(trade_log),
             winning_trades=winning_trades,
@@ -220,6 +220,40 @@ class BacktestEngine:
             trade_log=trade_log,
         )
 
+    def _execute_order(
+        self,
+        *,
+        portfolio: Portfolio,
+        order: Order,
+        market_price: Decimal,
+        trade_log: list[Trade],
+        closed_trade_pnls: list[Decimal],
+        position_values_at_entry: list[Decimal],
+        exposure_pcts_at_entry: list[Decimal],
+        monetary_risks_at_entry: list[Decimal],
+    ) -> None:
+        position_before_trade = portfolio.positions.get(order.symbol)
+        average_price_before_trade = (
+            position_before_trade.average_price
+            if position_before_trade is not None
+            else Decimal("0")
+        )
+        trade = self.broker.submit_order(order, market_price)
+        portfolio.apply_trade(trade)
+        trade_log.append(trade)
+        if trade.side == OrderSide.SELL:
+            closed_trade_pnls.append(
+                (trade.price - average_price_before_trade) * trade.quantity - trade.commission
+            )
+        elif trade.side == OrderSide.BUY:
+            entry_prices = {trade.symbol: trade.price}
+            entry_equity = portfolio.equity(entry_prices)
+            position_value = trade.gross_value
+            exposure_pct = position_value / entry_equity if entry_equity > 0 else Decimal("0")
+            position_values_at_entry.append(position_value)
+            exposure_pcts_at_entry.append(exposure_pct)
+            monetary_risks_at_entry.append(trade.monetary_risk)
+
     def _execute_stop_losses(
         self,
         *,
@@ -231,7 +265,11 @@ class BacktestEngine:
         for symbol, position in list(portfolio.positions.items()):
             if symbol != candle.symbol or position.quantity <= 0 or position.stop_loss_price is None:
                 continue
-            if candle.low > position.stop_loss_price:
+            if candle.open < position.stop_loss_price:
+                stop_market_price = candle.open
+            elif candle.low <= position.stop_loss_price:
+                stop_market_price = position.stop_loss_price
+            else:
                 continue
             average_price_before_trade = position.average_price
             stop_order = Order(
@@ -241,7 +279,7 @@ class BacktestEngine:
                 created_at=candle.timestamp,
                 exit_reason="stop_loss",
             )
-            trade = self.broker.submit_order(stop_order, position.stop_loss_price)
+            trade = self.broker.submit_order(stop_order, stop_market_price)
             portfolio.apply_trade(trade)
             trade_log.append(trade)
             closed_trade_pnls.append(

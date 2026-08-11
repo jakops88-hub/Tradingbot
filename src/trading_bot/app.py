@@ -91,6 +91,7 @@ def run_demo() -> None:
     print(f"Win rate: {result.win_rate * Decimal('100')}%")
     print(f"Net PnL: {result.net_pnl} SEK")
     print(f"Max drawdown: {result.max_drawdown * Decimal('100')}%")
+    print(f"Buy & hold max drawdown: {result.benchmark_max_drawdown * Decimal('100')}%")
     print(f"Profit factor: {result.profit_factor}")
     print("Real-money trading: unavailable")
 
@@ -172,7 +173,10 @@ def print_research_report(report: ResearchReport) -> None:
     print("TradingBot EMA 20/50 historical research")
     print("This is a historical simulation, not evidence of future profitability.")
     print("")
-    print(f"{'Period':<12}{'Strategy':>12}{'Buy&Hold':>12}{'Difference':>14}{'Trades':>8}{'Max DD':>10}")
+    print(
+        f"{'Period':<12}{'Strategy':>12}{'Buy&Hold':>12}{'Difference':>14}"
+        f"{'Trades':>8}{'Max DD':>10}{'B&H DD':>10}"
+    )
     for result in report.period_results:
         print(_period_row(result))
     for skipped in report.skipped_periods:
@@ -191,6 +195,7 @@ def print_research_report(report: ResearchReport) -> None:
     print(f"Average strategy return: {_format_pct(aggregate.average_strategy_return_pct)}")
     print(f"Median strategy return: {_format_pct(aggregate.median_strategy_return_pct)}")
     print(f"Average buy & hold return: {_format_pct(aggregate.average_benchmark_return_pct)}")
+    print(f"Average buy & hold max drawdown: {_format_pct(aggregate.average_benchmark_max_drawdown * Decimal('100'), signed=False)}")
     print(f"Profitable periods: {aggregate.profitable_periods}")
     print(f"Losing periods: {aggregate.losing_periods}")
     print(f"Best period: {aggregate.best_period.period.label if aggregate.best_period else 'n/a'}")
@@ -212,7 +217,7 @@ def print_market_sweep_report(report: MarketSweepReport) -> None:
     print("")
     print(
         f"{'Symbol':<12}{'Strategy':>12}{'Buy&Hold':>12}{'Diff':>10}"
-        f"{'Max DD':>10}{'Trades':>8}{'Stops':>8}{'Win':>8}{'Avg Exp':>10}{'Ending':>12}"
+        f"{'Max DD':>10}{'B&H DD':>10}{'Trades':>8}{'Stops':>8}{'Win':>8}{'Avg Exp':>10}{'Ending':>12}"
     )
     for result in report.results:
         print(_market_sweep_row(result))
@@ -243,6 +248,7 @@ def print_market_sweep_report(report: MarketSweepReport) -> None:
     print(f"Median strategy return: {_format_pct(summary.median_strategy_return_pct)}")
     print(f"Average buy & hold return: {_format_pct(summary.average_benchmark_return_pct)}")
     print(f"Average max drawdown: {_format_pct(summary.average_max_drawdown * Decimal('100'), signed=False)}")
+    print(f"Average buy & hold max drawdown: {_format_pct(summary.average_benchmark_max_drawdown * Decimal('100'), signed=False)}")
     print(f"Best strategy instrument: {summary.best_strategy_instrument.symbol if summary.best_strategy_instrument else 'n/a'}")
     print(f"Worst strategy instrument: {summary.worst_strategy_instrument.symbol if summary.worst_strategy_instrument else 'n/a'}")
     print(f"Strategy beat buy & hold count: {summary.strategy_beats_buy_and_hold_count}")
@@ -260,6 +266,7 @@ def _market_sweep_row(result: MarketSweepInstrumentResult) -> str:
         f"{_format_pct(result.benchmark_return_pct):>12}"
         f"{_format_pct(result.difference_vs_benchmark_pct):>10}"
         f"{_format_pct(result.max_drawdown * Decimal('100'), signed=False):>10}"
+        f"{_format_pct(result.benchmark_max_drawdown * Decimal('100'), signed=False):>10}"
         f"{result.total_trades:>8}"
         f"{result.stop_loss_exits:>8}"
         f"{_format_pct(result.win_rate * Decimal('100'), signed=False):>8}"
@@ -276,6 +283,7 @@ def _period_row(result: PeriodResult) -> str:
         f"{_format_pct(result.difference_vs_benchmark_pct):>14}"
         f"{result.total_trades:>8}"
         f"{_format_pct(result.max_drawdown * Decimal('100'), signed=False):>10}"
+        f"{_format_pct(result.benchmark_max_drawdown * Decimal('100'), signed=False):>10}"
     )
 
 

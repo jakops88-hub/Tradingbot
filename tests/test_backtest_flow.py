@@ -50,14 +50,14 @@ def make_candles(prices: list[str]) -> list[Candle]:
 
 def test_backtest_preserves_signal_risk_broker_portfolio_flow() -> None:
     engine = BacktestEngine(
-        strategy=ScriptedStrategy([SignalAction.BUY, SignalAction.HOLD, SignalAction.SELL]),
+        strategy=ScriptedStrategy([SignalAction.BUY, SignalAction.HOLD, SignalAction.SELL, SignalAction.HOLD]),
         risk_profile=get_risk_profile(RiskMode.MEDIUM),
         broker=PaperBroker(),
         starting_cash=Decimal("1000"),
     )
 
-    result = engine.run(make_candles(["100", "110", "120"]))
+    result = engine.run(make_candles(["100", "110", "120", "130"]))
 
     assert result.trades == 2
-    assert len(result.equity_curve) == 3
+    assert len(result.equity_curve) == 4
     assert result.ending_equity == Decimal("1040.00000000")

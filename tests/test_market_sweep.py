@@ -77,8 +77,8 @@ def make_evaluator(fetcher) -> MarketSweepEvaluator:
 
 def test_portfolio_state_is_independent_between_symbols(tmp_path: Path) -> None:
     paths = {
-        "AAA.ST": write_dataset(tmp_path, "AAA.ST", ["100", "110"]),
-        "BBB.ST": write_dataset(tmp_path, "BBB.ST", ["100", "110"]),
+        "AAA.ST": write_dataset(tmp_path, "AAA.ST", ["100", "100", "110"]),
+        "BBB.ST": write_dataset(tmp_path, "BBB.ST", ["100", "100", "110"]),
     }
 
     report = make_evaluator(lambda symbol: paths[symbol]).evaluate(["AAA.ST", "BBB.ST"])
@@ -90,7 +90,7 @@ def test_portfolio_state_is_independent_between_symbols(tmp_path: Path) -> None:
 
 
 def test_failed_symbol_does_not_kill_entire_sweep(tmp_path: Path) -> None:
-    paths = {"AAA.ST": write_dataset(tmp_path, "AAA.ST", ["100", "110"])}
+    paths = {"AAA.ST": write_dataset(tmp_path, "AAA.ST", ["100", "100", "110"])}
 
     def fetch(symbol: str) -> Path:
         if symbol == "FAIL.ST":
@@ -107,26 +107,27 @@ def test_failed_symbol_does_not_kill_entire_sweep(tmp_path: Path) -> None:
 
 def test_market_sweep_aggregate_metrics_ranking_and_counts(tmp_path: Path) -> None:
     paths = {
-        "WIN.ST": write_dataset(tmp_path, "WIN.ST", ["100", "110"]),
-        "LOSE.ST": write_dataset(tmp_path, "LOSE.ST", ["100", "90"]),
-        "BEAT.ST": write_dataset(tmp_path, "BEAT.ST", ["100", "80"]),
+        "WIN.ST": write_dataset(tmp_path, "WIN.ST", ["100", "100", "110"]),
+        "LOSE.ST": write_dataset(tmp_path, "LOSE.ST", ["100", "100", "90"]),
+        "BEAT.ST": write_dataset(tmp_path, "BEAT.ST", ["100", "100", "80"]),
     }
 
     report = make_evaluator(lambda symbol: paths[symbol]).evaluate(["WIN.ST", "LOSE.ST", "BEAT.ST"])
 
     assert report.summary.profitable_instruments == 1
     assert report.summary.losing_instruments == 2
-    assert report.summary.average_strategy_return_pct == Decimal("0")
-    assert report.summary.median_strategy_return_pct == Decimal("-1.0000000000")
+    assert report.summary.average_strategy_return_pct == Decimal("-1.333333333333333333333333333")
+    assert report.summary.median_strategy_return_pct == Decimal("-2.00000000")
     assert report.summary.average_benchmark_return_pct == Decimal("-6.666666666666666666666666667")
-    assert report.summary.average_max_drawdown == Decimal("0.006666666666666666666666666667")
+    assert report.summary.average_benchmark_max_drawdown == Decimal("0.1")
+    assert report.summary.average_max_drawdown == Decimal("0.02000000")
     assert report.summary.best_strategy_instrument is not None
     assert report.summary.best_strategy_instrument.symbol == "WIN.ST"
     assert report.summary.worst_strategy_instrument is not None
-    assert report.summary.worst_strategy_instrument.symbol == "LOSE.ST"
+    assert report.summary.worst_strategy_instrument.symbol == "BEAT.ST"
     assert report.summary.strategy_beats_buy_and_hold_count == 2
     assert [result.symbol for result in report.ranking] == ["WIN.ST", "LOSE.ST", "BEAT.ST"]
-    assert report.results[0].candle_count == 2
+    assert report.results[0].candle_count == 3
     assert report.results[0].repaired_ohlc_rows == 2
     assert report.results[0].largest_repaired_ohlc_violation_pct == Decimal("0.00000000000002")
     assert report.results[0].data_quality_status == "PASS"

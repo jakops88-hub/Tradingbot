@@ -130,6 +130,12 @@ Locked sweep settings are `1000 SEK`, `MEDIUM` risk, `0.1%` percentage fee, `0.1
 
 Yahoo Finance data uses `auto_adjust=True` and explicitly sets `repair=False` because yfinance's repair path may require optional SciPy support. TradingBot applies its own Yahoo-only OHLC ordering repair for tiny adjusted-price rounding artifacts up to `0.000001%` of price. Core `Candle` validation and local CSV validation remain strict. The market sweep report includes a Data Quality section with candle counts, repaired OHLC rows, largest repaired violation, and pass/fail status per symbol.
 
+## Backtest Execution Timing
+
+Daily strategy signals are generated only after a candle has completed. If candle `N` creates a BUY or SELL signal, the approved order executes no earlier than candle `N+1` open. A signal on the final candle is not executed because no next open exists.
+
+Long stop-loss exits are conservative for OHLC data: if the next candle opens below the stop, the stop exits at that opening price; otherwise, if the candle low reaches the stop, the stop exits at the stop price. Existing fees and slippage are still applied by the paper broker.
+
 Run EMA 20/50 research against a local OHLCV CSV:
 
 ```powershell

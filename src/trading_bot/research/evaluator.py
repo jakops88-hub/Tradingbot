@@ -124,6 +124,7 @@ def _aggregate(period_results: Sequence[PeriodResult]) -> AggregateResearchStats
             average_strategy_return_pct=Decimal("0"),
             median_strategy_return_pct=Decimal("0"),
             average_benchmark_return_pct=Decimal("0"),
+            average_benchmark_max_drawdown=Decimal("0"),
             profitable_periods=0,
             losing_periods=0,
             best_period=None,
@@ -134,11 +135,13 @@ def _aggregate(period_results: Sequence[PeriodResult]) -> AggregateResearchStats
 
     strategy_returns = [period.strategy_return_pct for period in period_results]
     benchmark_returns = [period.benchmark_return_pct for period in period_results]
+    benchmark_drawdowns = [period.benchmark_max_drawdown for period in period_results]
     drawdowns = [period.max_drawdown for period in period_results]
     return AggregateResearchStats(
         average_strategy_return_pct=sum(strategy_returns, Decimal("0")) / Decimal(len(strategy_returns)),
         median_strategy_return_pct=_median(strategy_returns),
         average_benchmark_return_pct=sum(benchmark_returns, Decimal("0")) / Decimal(len(benchmark_returns)),
+        average_benchmark_max_drawdown=sum(benchmark_drawdowns, Decimal("0")) / Decimal(len(benchmark_drawdowns)),
         profitable_periods=sum(1 for period in period_results if period.net_pnl > 0),
         losing_periods=sum(1 for period in period_results if period.net_pnl < 0),
         best_period=max(period_results, key=lambda period: period.strategy_return_pct),

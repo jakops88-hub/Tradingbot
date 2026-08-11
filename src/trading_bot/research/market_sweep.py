@@ -29,6 +29,7 @@ class MarketSweepInstrumentResult:
     strategy_return_pct: Decimal
     benchmark_return_pct: Decimal
     difference_vs_benchmark_pct: Decimal
+    benchmark_max_drawdown: Decimal
     max_drawdown: Decimal
     total_trades: int
     stop_loss_exits: int
@@ -54,6 +55,7 @@ class MarketSweepSummary:
     average_strategy_return_pct: Decimal
     median_strategy_return_pct: Decimal
     average_benchmark_return_pct: Decimal
+    average_benchmark_max_drawdown: Decimal
     average_max_drawdown: Decimal
     best_strategy_instrument: MarketSweepInstrumentResult | None
     worst_strategy_instrument: MarketSweepInstrumentResult | None
@@ -145,6 +147,7 @@ class MarketSweepEvaluator:
             strategy_return_pct=result.strategy_return_pct,
             benchmark_return_pct=result.benchmark_return_pct,
             difference_vs_benchmark_pct=result.difference_vs_benchmark_pct,
+            benchmark_max_drawdown=result.benchmark_max_drawdown,
             max_drawdown=result.max_drawdown,
             total_trades=result.total_trades,
             stop_loss_exits=result.stop_loss_exits,
@@ -196,6 +199,7 @@ def _summarize(results: Sequence[MarketSweepInstrumentResult]) -> MarketSweepSum
             average_strategy_return_pct=Decimal("0"),
             median_strategy_return_pct=Decimal("0"),
             average_benchmark_return_pct=Decimal("0"),
+            average_benchmark_max_drawdown=Decimal("0"),
             average_max_drawdown=Decimal("0"),
             best_strategy_instrument=None,
             worst_strategy_instrument=None,
@@ -203,6 +207,7 @@ def _summarize(results: Sequence[MarketSweepInstrumentResult]) -> MarketSweepSum
         )
     strategy_returns = [result.strategy_return_pct for result in results]
     benchmark_returns = [result.benchmark_return_pct for result in results]
+    benchmark_drawdowns = [result.benchmark_max_drawdown for result in results]
     drawdowns = [result.max_drawdown for result in results]
     return MarketSweepSummary(
         profitable_instruments=sum(1 for result in results if result.strategy_return_pct > 0),
@@ -210,6 +215,7 @@ def _summarize(results: Sequence[MarketSweepInstrumentResult]) -> MarketSweepSum
         average_strategy_return_pct=sum(strategy_returns, Decimal("0")) / Decimal(len(results)),
         median_strategy_return_pct=_median(strategy_returns),
         average_benchmark_return_pct=sum(benchmark_returns, Decimal("0")) / Decimal(len(results)),
+        average_benchmark_max_drawdown=sum(benchmark_drawdowns, Decimal("0")) / Decimal(len(results)),
         average_max_drawdown=sum(drawdowns, Decimal("0")) / Decimal(len(results)),
         best_strategy_instrument=max(results, key=lambda result: result.strategy_return_pct),
         worst_strategy_instrument=min(results, key=lambda result: result.strategy_return_pct),

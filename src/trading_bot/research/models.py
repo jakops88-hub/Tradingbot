@@ -28,6 +28,7 @@ class PeriodResult:
     strategy_return_pct: Decimal
     benchmark_return_pct: Decimal
     difference_vs_benchmark_pct: Decimal
+    benchmark_max_drawdown: Decimal
     total_trades: int
     win_rate: Decimal
     net_pnl: Decimal
@@ -49,6 +50,7 @@ class PeriodResult:
             strategy_return_pct=result.strategy_return_pct,
             benchmark_return_pct=result.benchmark_return_pct,
             difference_vs_benchmark_pct=result.difference_vs_benchmark_pct,
+            benchmark_max_drawdown=result.benchmark_max_drawdown,
             total_trades=result.total_trades,
             win_rate=result.win_rate,
             net_pnl=result.net_pnl,
@@ -74,6 +76,7 @@ class AggregateResearchStats:
     average_strategy_return_pct: Decimal
     median_strategy_return_pct: Decimal
     average_benchmark_return_pct: Decimal
+    average_benchmark_max_drawdown: Decimal
     profitable_periods: int
     losing_periods: int
     best_period: PeriodResult | None

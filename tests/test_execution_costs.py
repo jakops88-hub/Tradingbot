@@ -146,7 +146,7 @@ def test_backtest_reports_gross_vs_net_pnl_and_benchmark() -> None:
         starting_cash=Decimal("1000"),
     )
 
-    result = engine.run(make_candles(["100", "110"]))
+    result = engine.run(make_candles(["100", "100", "110"]))
 
     assert result.total_trades == 2
     assert result.total_fees_paid == Decimal("6.198000000000")
@@ -155,5 +155,6 @@ def test_backtest_reports_gross_vs_net_pnl_and_benchmark() -> None:
     assert result.gross_pnl == Decimal("20.000000000000")
     assert result.realized_pnl == Decimal("9.602000000000")
     assert result.benchmark_return_pct == Decimal("10.0")
+    assert result.benchmark_max_drawdown == Decimal("0")
     assert result.strategy_return_pct == Decimal("0.960200000000")
     assert result.difference_vs_benchmark_pct == Decimal("-9.039800000000")

@@ -53,7 +53,7 @@ def test_open_positions_are_marked_to_market_by_default() -> None:
         starting_cash=Decimal("1000"),
     )
 
-    result = engine.run(make_candles(["10", "9", "8", "12", "13"]))
+    result = engine.run(make_candles(["10", "9", "8", "12", "13", "14"]))
 
     assert result.total_trades == 1
     assert result.open_positions == 1
