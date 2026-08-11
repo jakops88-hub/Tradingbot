@@ -1,0 +1,50 @@
+TradingBot one-click AI scan report
+Symbols: config\swedish_large_caps.txt
+Starting capital assumption: 1000 SEK
+Risk profile: MEDIUM
+XGBoost ranks candidates first
+OpenAI advisory limit: top 3 candidates
+
+TradingBot current-market XGBoost + OpenAI advisory scan
+This is a research scan only. It cannot trade real money.
+OpenAI is advisory only and cannot change risk settings, stops, exposure, or call a broker.
+
+Rank  Symbol        XGB Prob    Momentum  Volatility      Volume
+   1  ERIC-B.ST       56.55%      -0.92%       0.60%      +2.43%
+   2  INVE-B.ST       54.57%      +2.32%       0.73%      +8.92%
+   3  SEB-A.ST        53.61%      +4.00%       0.71%     -12.57%
+   4  SWED-A.ST       52.83%      +7.25%       0.81%     -10.13%
+   5  SHB-A.ST        52.74%      +2.01%       0.83%      +1.83%
+   6  ASSA-B.ST       52.52%      +0.08%       0.88%     -11.93%
+   7  SAND.ST         51.52%      +5.62%       1.10%     -15.20%
+   8  VOLV-B.ST       51.04%      +4.01%       1.26%      -8.12%
+   9  ATCO-A.ST       50.60%      +4.66%       1.16%     -10.38%
+  10  HM-B.ST         44.84%      +7.05%       1.42%     -40.72%
+
+OpenAI analyses requested for top 3 candidates
+
+ERIC-B.ST | XGBoost probability: 56.55%
+OpenAI: WATCH, confidence 0.00%, sentiment NEUTRAL, regime UNCERTAIN
+Safe failure: OPENAI_API_KEY is not configured
+Summary: No AI advisory recommendation was produced.
+Positive factors: none
+Negative factors: none
+Risk flags: OpenAI advisory unavailable
+
+INVE-B.ST | XGBoost probability: 54.57%
+OpenAI: WATCH, confidence 0.00%, sentiment NEUTRAL, regime UNCERTAIN
+Safe failure: OPENAI_API_KEY is not configured
+Summary: No AI advisory recommendation was produced.
+Positive factors: none
+Negative factors: none
+Risk flags: OpenAI advisory unavailable
+
+SEB-A.ST | XGBoost probability: 53.61%
+OpenAI: WATCH, confidence 0.00%, sentiment NEUTRAL, regime UNCERTAIN
+Safe failure: OPENAI_API_KEY is not configured
+Summary: No AI advisory recommendation was produced.
+Positive factors: none
+Negative factors: none
+Risk flags: OpenAI advisory unavailable
+
+Real-money trading: unavailable

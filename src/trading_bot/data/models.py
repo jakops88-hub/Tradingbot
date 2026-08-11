@@ -53,12 +53,15 @@ class Signal:
     confidence: Decimal = Decimal("0")
     reason: str = ""
     stop_loss_price: Decimal | None = None
+    stop_loss_pct: Decimal | None = None
 
     def __post_init__(self) -> None:
         if not Decimal("0") <= self.confidence <= Decimal("1"):
             raise ValueError("confidence must be between 0 and 1")
         if self.stop_loss_price is not None and self.stop_loss_price <= 0:
             raise ValueError("stop_loss_price must be positive")
+        if self.stop_loss_pct is not None and not Decimal("0") < self.stop_loss_pct < Decimal("1"):
+            raise ValueError("stop_loss_pct must be between 0 and 1")
 
 
 @dataclass(frozen=True)
@@ -70,6 +73,7 @@ class Order:
     order_type: OrderType = OrderType.MARKET
     limit_price: Decimal | None = None
     stop_loss_price: Decimal | None = None
+    stop_loss_pct: Decimal | None = None
     exit_reason: str = "signal"
 
     def __post_init__(self) -> None:
@@ -81,6 +85,8 @@ class Order:
             raise ValueError("limit_price must be positive")
         if self.stop_loss_price is not None and self.stop_loss_price <= 0:
             raise ValueError("stop_loss_price must be positive")
+        if self.stop_loss_pct is not None and not Decimal("0") < self.stop_loss_pct < Decimal("1"):
+            raise ValueError("stop_loss_pct must be between 0 and 1")
 
 
 @dataclass(frozen=True)

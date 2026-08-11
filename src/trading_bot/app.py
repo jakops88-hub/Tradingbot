@@ -15,7 +15,9 @@ from trading_bot.data.models import Candle
 from trading_bot.data.yahoo_finance import YahooFinanceDataProvider
 from trading_bot.execution.costs import ExecutionCostConfig
 from trading_bot.execution.paper_broker import PaperBroker
-from trading_bot.ml.walk_forward import MLResearchReport, MLWalkForwardEvaluator
+from trading_bot.ml.dataset import MLTargetMode
+from trading_bot.ml.model import SklearnLogisticDecisionModel, XGBoostDecisionModel
+from trading_bot.ml.walk_forward import MLResearchReport, MLStrategyVariant, MLWalkForwardEvaluator, ModelResearchSpec
 from trading_bot.research.evaluator import ResearchEvaluator, yearly_periods
 from trading_bot.research.market_sweep import (
     MarketSweepEvaluator,
@@ -69,6 +71,12 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.command == "ml-research":
         run_ml_research_command(args)
+        return
+    if args.command == "xgb-research":
+        run_xgb_research_command(args)
+        return
+    if args.command == "ai-scan":
+        run_ai_scan_command(args)
         return
 
     run_demo()
@@ -174,42 +182,119 @@ def run_market_sweep_command(args: argparse.Namespace) -> None:
 
 
 def run_ml_research_command(args: argparse.Namespace) -> None:
-    symbols = load_symbol_config(args.symbols)
-    output_dir = Path(args.output_dir)
     costs = ExecutionCostConfig(
         percentage_fee=Decimal("0.001"),
         fixed_fee=Decimal("0"),
         slippage_percentage=Decimal("0.001"),
     )
-    provider = YahooFinanceDataProvider(
-        cache_dir=output_dir,
-        adjustment_policy=LOCKED_ADJUSTMENT_POLICY,
+    datasets = _load_symbol_datasets(
+        symbols_path=args.symbols,
+        output_dir=args.output_dir,
+        start=LOCKED_START_DATE,
+        end=LOCKED_END_DATE,
     )
-    datasets: dict[str, list[Candle]] = {}
-    for symbol in symbols:
-        csv_path = provider.download_to_csv(
-            symbol=symbol,
-            start=LOCKED_START_DATE,
-            end=LOCKED_END_DATE,
-        )
-        require_matching_currency(csv_path, "SEK")
-        candles = [
-            candle
-            for candle in load_csv_candles(csv_path, symbol)
-            if LOCKED_START_DATE <= candle.timestamp <= LOCKED_END_DATE
-        ]
-        if candles:
-            datasets[symbol] = candles
-    if not datasets:
-        raise ValueError("No datasets available for ML research")
 
     evaluator = MLWalkForwardEvaluator(
         risk_profile=get_risk_profile(RiskMode.MEDIUM),
         broker_factory=lambda: PaperBroker(costs),
         starting_capital=Decimal("1000"),
         probability_threshold=Decimal("0.60"),
+        cost_config=costs,
     )
     print_ml_research_report(evaluator.evaluate(datasets))
+
+
+def run_xgb_research_command(args: argparse.Namespace) -> None:
+    costs = ExecutionCostConfig(
+        percentage_fee=Decimal("0.001"),
+        fixed_fee=Decimal("0"),
+        slippage_percentage=Decimal("0.001"),
+    )
+    datasets = _load_symbol_datasets(
+        symbols_path=args.symbols,
+        output_dir=args.output_dir,
+        start=LOCKED_START_DATE,
+        end=LOCKED_END_DATE,
+    )
+    evaluator = MLWalkForwardEvaluator(
+        risk_profile=get_risk_profile(RiskMode.MEDIUM),
+        broker_factory=lambda: PaperBroker(costs),
+        starting_capital=Decimal("1000"),
+        probability_threshold=Decimal("0.60"),
+        cost_config=costs,
+    )
+    report = evaluator.evaluate_model_comparison(
+        datasets,
+        [
+            ModelResearchSpec(
+                name="XGBoost",
+                variant=MLStrategyVariant.XGBOOST_TRADE_ALIGNED_CALIBRATED,
+                factory=XGBoostDecisionModel,
+            ),
+            ModelResearchSpec(
+                name="LogisticRegression",
+                variant=MLStrategyVariant.LOGISTIC_TRADE_ALIGNED_CALIBRATED,
+                factory=SklearnLogisticDecisionModel,
+            ),
+        ],
+    )
+    print_ml_research_report(report)
+
+
+def run_ai_scan_command(args: argparse.Namespace) -> None:
+    from trading_bot.ai.openai_analyst import OpenAIAnalyst
+    from trading_bot.ai.scanner import HybridMarketScanner
+
+    costs = ExecutionCostConfig(
+        percentage_fee=Decimal("0.001"),
+        fixed_fee=Decimal("0"),
+        slippage_percentage=Decimal("0.001"),
+    )
+    scan_end = _parse_date(args.end) if args.end else LOCKED_END_DATE
+    datasets = _load_symbol_datasets(
+        symbols_path=args.symbols,
+        output_dir=args.output_dir,
+        start=LOCKED_START_DATE,
+        end=scan_end,
+    )
+    scanner = HybridMarketScanner(
+        analyst=OpenAIAnalyst(),
+        risk_profile=get_risk_profile(RiskMode.MEDIUM),
+        cost_config=costs,
+    )
+    print_ai_scan_report(scanner.scan(datasets))
+
+
+def _load_symbol_datasets(
+    *,
+    symbols_path: str,
+    output_dir: str,
+    start: datetime,
+    end: datetime,
+) -> dict[str, list[Candle]]:
+    symbols = load_symbol_config(symbols_path)
+    provider = YahooFinanceDataProvider(
+        cache_dir=Path(output_dir),
+        adjustment_policy=LOCKED_ADJUSTMENT_POLICY,
+    )
+    datasets: dict[str, list[Candle]] = {}
+    for symbol in symbols:
+        csv_path = provider.download_to_csv(
+            symbol=symbol,
+            start=start,
+            end=end,
+        )
+        require_matching_currency(csv_path, "SEK")
+        candles = [
+            candle
+            for candle in load_csv_candles(csv_path, symbol)
+            if start <= candle.timestamp <= end
+        ]
+        if candles:
+            datasets[symbol] = candles
+    if not datasets:
+        raise ValueError("No datasets available")
+    return datasets
 
 
 def print_research_report(report: ResearchReport) -> None:
@@ -303,40 +388,141 @@ def print_market_sweep_report(report: MarketSweepReport) -> None:
 
 
 def print_ml_research_report(report: MLResearchReport) -> None:
-    print("TradingBot ML Decision Engine v1 walk-forward research")
+    print("TradingBot ML walk-forward research")
     print("This is out-of-sample historical research, not evidence of future profitability.")
-    print("Model: StandardScaler -> LogisticRegression")
-    print("Target: positive return from candle N+1 open to candle N+11 open.")
-    print("Locked settings: threshold 60%, 5% stop, 10-day max hold, MEDIUM risk, 1000 SEK, 0.1% fee, 0.1% slippage")
+    print("Models: XGBoost primary where present; LogisticRegression retained as a baseline.")
+    print("Targets: trade-aligned net PnL after stop, fees, slippage, and max hold; raw target appears only in legacy baseline reports.")
+    print("Locked settings: 5% stop, 10-day max hold, MEDIUM risk, 1000 SEK, 0.1% fee, 0.1% slippage")
+    print("Thresholds: fixed 60% baseline plus leakage-safe calibrated trade-aligned thresholds from 50%, 52.5%, 55%, 57.5%, 60%.")
+    print("OpenAI is not used in historical backtests.")
     print("")
-    for fold in report.folds:
-        metrics = fold.prediction_metrics
-        print(f"Fold: train {fold.fold.train_start_year}-{fold.fold.train_end_year}, test {fold.fold.test_year}")
-        print(f"Training samples: {fold.training_samples}")
-        print(f"Out-of-sample predictions: {metrics.predictions}")
-        print(
-            "Prediction metrics: "
-            f"accuracy={_format_decimal(metrics.accuracy)}, "
-            f"precision={_format_decimal(metrics.precision)}, "
-            f"recall={_format_decimal(metrics.recall)}, "
-            f"roc_auc={_format_decimal(metrics.roc_auc) if metrics.roc_auc is not None else 'n/a'}"
-        )
-        print(
-            f"{'Symbol':<12}{'Strategy':<12}{'Return':>10}{'Max DD':>10}"
-            f"{'Trades':>8}{'Win':>8}{'Ending':>12}"
-        )
-        for comparison in fold.symbol_results:
-            for result in (comparison.ml, comparison.ema, comparison.buy_and_hold):
-                print(
-                    f"{comparison.symbol:<12}"
-                    f"{result.strategy_name:<12}"
-                    f"{_format_pct(result.return_pct):>10}"
-                    f"{_format_pct(result.max_drawdown * Decimal('100'), signed=False):>10}"
-                    f"{result.trades:>8}"
-                    f"{_format_pct(result.win_rate * Decimal('100'), signed=False):>8}"
-                    f"{result.ending_capital.quantize(Decimal('0.01')):>12}"
-                )
+    for variant in report.variants:
+        print(_variant_heading(variant))
         print("")
+        for fold in variant.folds:
+            metrics = fold.prediction_metrics
+            print(f"Fold: train {fold.fold.train_start_year}-{fold.fold.train_end_year}, test {fold.fold.test_year}")
+            print(f"ML threshold used: {_format_pct(fold.threshold * Decimal('100'), signed=False)}")
+            print(f"Training samples: {fold.training_samples}")
+            print(f"Out-of-sample predictions: {metrics.predictions}")
+            print(
+                "Prediction metrics: "
+                f"class_balance={_format_pct(metrics.positive_class_rate * Decimal('100'), signed=False)}, "
+                f"buy_rate={_format_pct(metrics.predicted_buy_rate * Decimal('100'), signed=False)}, "
+                f"accuracy={_format_decimal(metrics.accuracy)}, "
+                f"precision={_format_decimal(metrics.precision)}, "
+                f"recall={_format_decimal(metrics.recall)}, "
+                f"roc_auc={_format_decimal(metrics.roc_auc) if metrics.roc_auc is not None else 'n/a'}"
+            )
+            print(
+                "Probability diagnostics: "
+                f"avg={_format_pct(metrics.average_predicted_probability * Decimal('100'), signed=False)}, "
+                f"avg_pos={_format_pct(metrics.average_probability_for_positive_labels * Decimal('100'), signed=False)}, "
+                f"avg_neg={_format_pct(metrics.average_probability_for_negative_labels * Decimal('100'), signed=False)}"
+            )
+            if fold.calibration is not None:
+                calibration = fold.calibration
+                print("Calibration diagnostics")
+                print(
+                    f"Validation period: {calibration.validation_start.date().isoformat()} "
+                    f"to {calibration.validation_end.date().isoformat()}"
+                )
+                print(f"Internal training samples: {calibration.internal_training_samples}")
+                print(f"Validation samples: {calibration.validation_samples}")
+                print(f"Refit training samples: {calibration.refit_training_samples}")
+                print(f"Chosen threshold: {_format_pct(calibration.chosen_threshold * Decimal('100'), signed=False)}")
+                print(f"Validation trades: {calibration.validation_trades}")
+                print(f"Validation return: {_format_pct(calibration.validation_return_pct)}")
+                print(f"Validation max drawdown: {_format_pct(calibration.validation_max_drawdown * Decimal('100'), signed=False)}")
+                print(f"Outer test buy rate: {_format_pct(fold.outer_test_buy_rate * Decimal('100'), signed=False)}")
+                print(f"Outer test trades: {fold.outer_test_trades}")
+                print(f"{'Threshold':<12}{'Eligible':>10}{'Return':>10}{'Max DD':>10}{'Trades':>8}{'Win':>8}{'Score':>12}")
+                for candidate in calibration.candidate_results:
+                    print(
+                        f"{_format_pct(candidate.threshold * Decimal('100'), signed=False):<12}"
+                        f"{str(candidate.eligible):>10}"
+                        f"{_format_pct(candidate.validation_return_pct):>10}"
+                        f"{_format_pct(candidate.validation_max_drawdown * Decimal('100'), signed=False):>10}"
+                        f"{candidate.validation_trades:>8}"
+                        f"{_format_pct(candidate.weighted_win_rate * Decimal('100'), signed=False):>8}"
+                        f"{_format_candidate_score(candidate.score):>12}"
+                    )
+            print(f"{'Bucket':<10}{'Predictions':>12}{'Positive':>12}{'Avg Net Ret':>14}")
+            for bucket in metrics.probability_buckets:
+                print(
+                    f"{bucket.label:<10}"
+                    f"{bucket.predictions:>12}"
+                    f"{_format_pct(bucket.actual_positive_rate * Decimal('100'), signed=False):>12}"
+                    f"{_format_pct(bucket.average_net_trade_return * Decimal('100')):>14}"
+                )
+            print(
+                f"{'Symbol':<12}{'Strategy':<12}{'Return':>10}{'Max DD':>10}"
+                f"{'Trades':>8}{'Win':>8}{'Ending':>12}"
+            )
+            for comparison in fold.symbol_results:
+                for result in (comparison.ml, comparison.ema, comparison.buy_and_hold):
+                    print(
+                        f"{comparison.symbol:<12}"
+                        f"{result.strategy_name:<12}"
+                        f"{_format_pct(result.return_pct):>10}"
+                        f"{_format_pct(result.max_drawdown * Decimal('100'), signed=False):>10}"
+                        f"{result.trades:>8}"
+                        f"{_format_pct(result.win_rate * Decimal('100'), signed=False):>8}"
+                        f"{result.ending_capital.quantize(Decimal('0.01')):>12}"
+                    )
+            print("")
+        aggregate = variant.aggregate
+        print("Aggregate out-of-sample ML trading comparison")
+        print(f"Average return: {_format_pct(aggregate.average_return_pct)}")
+        print(f"Median return: {_format_pct(aggregate.median_return_pct)}")
+        print(f"Profitable symbol-years: {aggregate.profitable_symbol_years}")
+        print(f"Losing symbol-years: {aggregate.losing_symbol_years}")
+        print(f"Flat symbol-years: {aggregate.flat_symbol_years}")
+        print(f"Average max drawdown: {_format_pct(aggregate.average_max_drawdown * Decimal('100'), signed=False)}")
+        print(f"Total trades: {aggregate.total_trades}")
+        print(f"Weighted win rate: {_format_pct(aggregate.weighted_win_rate * Decimal('100'), signed=False)}")
+        print(f"ML vs EMA wins: {aggregate.ml_vs_ema_wins}")
+        print(f"ML vs buy & hold wins: {aggregate.ml_vs_buy_and_hold_wins}")
+        print("")
+    print("Real-money trading: unavailable")
+
+
+def print_ai_scan_report(report) -> None:
+    print("TradingBot current-market XGBoost + OpenAI advisory scan")
+    print("This is a research scan only. It cannot trade real money.")
+    print("OpenAI is advisory only and cannot change risk settings, stops, exposure, or call a broker.")
+    print("")
+    print(f"{'Rank':>4}  {'Symbol':<12}{'XGB Prob':>10}{'Momentum':>12}{'Volatility':>12}{'Volume':>12}")
+    for index, candidate in enumerate(report.ranked_candidates, start=1):
+        print(
+            f"{index:>4}  "
+            f"{candidate.symbol:<12}"
+            f"{_format_pct(candidate.xgboost_probability * Decimal('100'), signed=False):>10}"
+            f"{_format_pct(candidate.momentum * Decimal('100')):>12}"
+            f"{_format_pct(candidate.volatility * Decimal('100'), signed=False):>12}"
+            f"{_format_pct(candidate.volume_vs_average * Decimal('100')):>12}"
+        )
+    print("")
+    print(f"OpenAI analyses requested for top {report.max_openai_analyses} candidates")
+    for analyzed in report.analyzed_candidates:
+        candidate = analyzed.candidate
+        analysis = analyzed.openai_analysis
+        print("")
+        print(f"{candidate.symbol} | XGBoost probability: {_format_pct(candidate.xgboost_probability * Decimal('100'), signed=False)}")
+        if analysis is None:
+            print("OpenAI: not analyzed")
+            continue
+        print(
+            f"OpenAI: {analysis.decision.value}, confidence {_format_pct(analysis.confidence * Decimal('100'), signed=False)}, "
+            f"sentiment {analysis.sentiment.value}, regime {analysis.regime.value}"
+        )
+        if analysis.safe_failure:
+            print(f"Safe failure: {analysis.error}")
+        print(f"Summary: {analysis.summary}")
+        print(f"Positive factors: {_format_list(analysis.positive_factors)}")
+        print(f"Negative factors: {_format_list(analysis.negative_factors)}")
+        print(f"Risk flags: {_format_list(analysis.risk_flags)}")
+    print("")
     print("Real-money trading: unavailable")
 
 
@@ -385,6 +571,34 @@ def _format_decimal(value: Decimal) -> str:
     return str(value.quantize(Decimal("0.0001")))
 
 
+def _format_candidate_score(value: Decimal) -> str:
+    if value.is_infinite():
+        return "ineligible"
+    return str(value.quantize(Decimal("0.0001")))
+
+
+def _format_list(values: list[str]) -> str:
+    return ", ".join(values) if values else "none"
+
+
+def _variant_heading(variant) -> str:
+    if variant.variant.value == "xgboost_trade_aligned_calibrated":
+        return "XGBOOST - TRADE-ALIGNED TARGET - CALIBRATED THRESHOLD"
+    if variant.variant.value == "logistic_trade_aligned_calibrated":
+        return "LOGISTIC REGRESSION BASELINE - TRADE-ALIGNED TARGET - CALIBRATED THRESHOLD"
+    if variant.variant.value == "raw_target_fixed":
+        return f"{variant.model_name.upper()} RAW TARGET BASELINE - FIXED 60%"
+    if variant.variant.value == "trade_aligned_fixed":
+        return f"{variant.model_name.upper()} TRADE-ALIGNED TARGET - FIXED 60%"
+    if variant.variant.value == "trade_aligned_calibrated":
+        return f"{variant.model_name.upper()} TRADE-ALIGNED TARGET - CALIBRATED THRESHOLD"
+    if variant.target_mode == MLTargetMode.RAW_RETURN:
+        return "RAW TARGET"
+    if variant.target_mode == MLTargetMode.TRADE_ALIGNED:
+        return "TRADE-ALIGNED TARGET"
+    return str(variant.target_mode)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="TradingBot offline tools")
     subparsers = parser.add_subparsers(dest="command")
@@ -413,6 +627,13 @@ def _build_parser() -> argparse.ArgumentParser:
     ml_research = subparsers.add_parser("ml-research", help="Run walk-forward ML decision research")
     ml_research.add_argument("--symbols", default="config/swedish_large_caps.txt")
     ml_research.add_argument("--output-dir", default="data")
+    xgb_research = subparsers.add_parser("xgb-research", help="Run XGBoost vs LogisticRegression historical research")
+    xgb_research.add_argument("--symbols", default="config/swedish_large_caps.txt")
+    xgb_research.add_argument("--output-dir", default="data")
+    ai_scan = subparsers.add_parser("ai-scan", help="Run current XGBoost + OpenAI advisory scan")
+    ai_scan.add_argument("--symbols", default="config/swedish_large_caps.txt")
+    ai_scan.add_argument("--output-dir", default="data")
+    ai_scan.add_argument("--end", default=None, help="Optional end date, YYYY-MM-DD. Defaults to 2026-01-01.")
     return parser
 
 

@@ -1,8 +1,8 @@
 # TradingBot
 
-TradingBot is a modular Python foundation for an automated trading platform. The current project intentionally stops at offline architecture: typed domain models, strategy and broker interfaces, risk gates, portfolio accounting, paper execution primitives, metrics, historical CSV loading, and backtest orchestration.
+TradingBot is a modular Python foundation for an automated trading platform. The current project intentionally stops at research architecture: typed domain models, strategy and broker interfaces, risk gates, portfolio accounting, paper execution primitives, metrics, historical CSV loading, backtest orchestration, and advisory current-market scanning.
 
-The current version cannot trade real money. It has no live broker integration, no API-key requirements, and no credential storage.
+The current version cannot trade real money. It has no live broker integration and no credential storage. `OPENAI_API_KEY` is optional and used only for the advisory current-market scan, never for historical backtests.
 
 ## Current Status
 
@@ -28,7 +28,8 @@ Implemented:
 - Stop-loss execution in historical backtests with fees and slippage applied
 - Research diagnostics for position value, exposure, stop-loss exits, and monetary risk at entry
 - One-click locked EMA 20/50 multi-market sweep for Swedish large-cap symbols
-- Local ML Decision Engine v1 research using `StandardScaler -> LogisticRegression`
+- Local ML research using XGBoost as the primary quant model and `StandardScaler -> LogisticRegression` as a baseline
+- Optional OpenAI advisory analysis for current XGBoost-ranked candidates only
 - Offline pytest coverage for foundational components
 
 Not implemented yet:
@@ -36,7 +37,8 @@ Not implemented yet:
 - Live trading
 - Real broker integrations
 - Strategy optimization or profitability claims
-- Neural networks, LLM APIs, or automatic parameter tuning
+- Neural networks or automatic parameter tuning
+- OpenAI-driven backtesting, risk changes, broker calls, or order placement
 - Dashboard or web UI
 
 ## Architecture
@@ -144,7 +146,39 @@ The ML runner downloads or refreshes the same ten Swedish symbols, pools them fo
 reports/ml_research.txt
 ```
 
-ML v1 uses only local scikit-learn components: `StandardScaler -> LogisticRegression`. Features are built from data available at candle close: 1-day, 5-day, and 20-day returns; EMA20 vs EMA50; close vs EMA20; RSI14; ATR14 divided by close; 20-day volatility; and volume versus 20-day average. The target is positive return for a trade entered at candle `N+1` open and exited at candle `N+11` open. Symbol identity is not used as a feature.
+ML v1 uses only local scikit-learn components: `StandardScaler -> LogisticRegression`. Features are built from data available at candle close: 1-day, 5-day, and 20-day returns; EMA20 vs EMA50; close vs EMA20; RSI14; ATR14 divided by close; 20-day volatility; and volume versus 20-day average. Research compares the original raw target, positive return from candle `N+1` open to candle `N+11` open, against the trade-aligned target, positive net PnL after next-open entry, 5% entry-based stop, 10-trading-day max hold, fees, and slippage. Symbol identity is not used as a feature.
+
+Run XGBoost historical research by double-clicking:
+
+```text
+run_xgb_research.bat
+```
+
+The XGBoost runner compares XGBoost, LogisticRegression, EMA 20/50, and buy-and-hold using the same trade-aligned target, walk-forward folds, MEDIUM risk, 5% stop, 10-day max hold, 0.1% fee, and 0.1% slippage. OpenAI is not used in historical backtests. The report is saved to:
+
+```text
+reports/xgb_research.txt
+```
+
+Configure OpenAI for advisory scans by double-clicking:
+
+```text
+configure_openai.bat
+```
+
+Run the current XGBoost + OpenAI advisory scan by double-clicking:
+
+```text
+run_ai_scan.bat
+```
+
+The scanner ranks the ten Swedish stocks with XGBoost, sends at most the top three candidates to OpenAI for advisory analysis, and saves the report to:
+
+```text
+reports/ai_scan.txt
+```
+
+OpenAI analysis is advisory only. It cannot change risk settings, stop-losses, exposure, or call a broker. If `OPENAI_API_KEY` is missing or the API fails, the scan fails safely and produces no AI trade recommendation.
 
 ## Backtest Execution Timing
 

@@ -2,7 +2,7 @@
 
 ## Project Purpose
 
-TradingBot is a Python 3.11+ foundation for an automated trading platform. It currently supports offline domain modeling, historical CSV loading, paper execution with configurable simulated costs, risk gates, portfolio accounting, metrics, and backtest orchestration. It must not place real trades.
+TradingBot is a Python 3.11+ foundation for an automated trading platform. It currently supports offline domain modeling, historical CSV loading, paper execution with configurable simulated costs, risk gates, portfolio accounting, metrics, backtest orchestration, local ML research, and advisory current-market scanning. It must not place real trades.
 
 ## Architecture
 
@@ -22,6 +22,8 @@ Core boundaries:
 - `backtest`: orchestration of the full offline trading flow.
 - `research`: independent multi-period and full-history historical evaluation.
 - `metrics`: performance and goal tracking metrics.
+- `ml`: local deterministic feature, target, model, and walk-forward research code.
+- `ai`: advisory current-market OpenAI analysis only; never part of historical backtests or execution.
 
 ## Coding Conventions
 
@@ -32,7 +34,10 @@ Core boundaries:
 - Keep external data adapters isolated from core backtest and research layers.
 - Keep Yahoo-specific OHLC repairs inside `YahooFinanceDataProvider`; core `Candle` and CSV validation must remain strict.
 - Backtest signals generated from candle `N` must execute no earlier than candle `N+1` open; do not reintroduce same-bar close fills.
-- ML research must stay local and deterministic; do not add LLM APIs, neural networks, automatic tuning, or symbol identity as a predictive feature.
+- Historical ML research must stay local and deterministic; do not use OpenAI, neural networks, automatic tuning, or symbol identity as a predictive feature.
+- OpenAI is allowed only for current-market advisory scans, must read `OPENAI_API_KEY` from the environment, and must never log credentials.
+- OpenAI must not call brokers, create orders, bypass `RiskManager`, change stop-losses, change risk settings, increase exposure, or use leverage.
+- Keep ML trade-aligned target generation tied to shared paper execution helpers so stop, fee, and slippage assumptions do not drift from backtests.
 - Risk must never increase because a portfolio is behind a user goal; goals are tracking only.
 
 ## Test Command

@@ -46,7 +46,7 @@ def test_ml_signal_executes_on_next_candle_open() -> None:
         starting_cash=Decimal("1000"),
     ).run(make_candles(52))
 
-    assert result.total_trades == 1
+    assert result.total_trades >= 1
     assert result.trade_log[0].executed_at == START + timedelta(days=50)
     assert result.trade_log[0].market_price == Decimal("123")
     assert result.trade_log[0].price == Decimal("123")

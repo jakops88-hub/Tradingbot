@@ -7,6 +7,7 @@ from decimal import Decimal
 from trading_bot.data.models import Order, OrderSide, Trade
 from trading_bot.execution.broker import Broker
 from trading_bot.execution.costs import ExecutionCostConfig
+from trading_bot.execution.simulation import simulated_fill_price, stop_loss_from_entry
 
 
 class PaperBroker(Broker):
@@ -32,23 +33,19 @@ class PaperBroker(Broker):
         if market_price <= 0:
             raise ValueError("market_price must be positive")
 
-        slippage = self.cost_config.slippage_percentage
-        if order.side == OrderSide.BUY:
-            fill_price = market_price * (Decimal("1") + slippage)
-        else:
-            fill_price = market_price * (Decimal("1") - slippage)
-
-        if fill_price <= 0:
-            raise ValueError("slippage produced a non-positive fill price")
+        fill_price = simulated_fill_price(order.side, market_price, self.cost_config.slippage_percentage)
 
         gross_value = order.quantity * fill_price
         percentage_fee = gross_value * self.cost_config.percentage_fee
         fixed_fee = self.cost_config.fixed_fee
         total_fee = percentage_fee + fixed_fee
         slippage_cost = abs(fill_price - market_price) * order.quantity
+        stop_loss_price = order.stop_loss_price
+        if order.side == OrderSide.BUY and order.stop_loss_pct is not None:
+            stop_loss_price = stop_loss_from_entry(fill_price, order.stop_loss_pct)
         monetary_risk = Decimal("0")
-        if order.side == OrderSide.BUY and order.stop_loss_price is not None:
-            monetary_risk = abs(fill_price - order.stop_loss_price) * order.quantity
+        if order.side == OrderSide.BUY and stop_loss_price is not None:
+            monetary_risk = abs(fill_price - stop_loss_price) * order.quantity
 
         return Trade(
             symbol=order.symbol,
@@ -61,7 +58,7 @@ class PaperBroker(Broker):
             percentage_fee=percentage_fee,
             fixed_fee=fixed_fee,
             slippage_cost=slippage_cost,
-            stop_loss_price=order.stop_loss_price,
+            stop_loss_price=stop_loss_price,
             monetary_risk=monetary_risk,
             exit_reason=order.exit_reason,
         )

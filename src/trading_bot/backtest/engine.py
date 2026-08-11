@@ -8,6 +8,7 @@ from decimal import Decimal
 from trading_bot.config.risk_profiles import RiskProfile
 from trading_bot.data.models import Candle, Order, OrderSide, Trade
 from trading_bot.execution.broker import Broker
+from trading_bot.execution.simulation import long_stop_market_price
 from trading_bot.metrics.performance import (
     buy_and_hold_return,
     max_drawdown,
@@ -265,11 +266,8 @@ class BacktestEngine:
         for symbol, position in list(portfolio.positions.items()):
             if symbol != candle.symbol or position.quantity <= 0 or position.stop_loss_price is None:
                 continue
-            if candle.open < position.stop_loss_price:
-                stop_market_price = candle.open
-            elif candle.low <= position.stop_loss_price:
-                stop_market_price = position.stop_loss_price
-            else:
+            stop_market_price = long_stop_market_price(candle, position.stop_loss_price)
+            if stop_market_price is None:
                 continue
             average_price_before_trade = position.average_price
             stop_order = Order(

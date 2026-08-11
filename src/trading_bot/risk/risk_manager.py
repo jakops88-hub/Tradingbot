@@ -88,6 +88,7 @@ class RiskManager:
                     quantity=quantity,
                     created_at=signal.generated_at,
                     stop_loss_price=signal.stop_loss_price,
+                    stop_loss_pct=signal.stop_loss_pct,
                 ),
             )
 

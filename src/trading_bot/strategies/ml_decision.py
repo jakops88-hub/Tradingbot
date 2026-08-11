@@ -71,6 +71,7 @@ class MLDecisionStrategy(Strategy):
                 confidence=probability,
                 reason=f"ML probability {probability} >= {self.config.probability_threshold}",
                 stop_loss_price=latest.close * (Decimal("1") - self.config.stop_loss_pct),
+                stop_loss_pct=self.config.stop_loss_pct,
             )
         return Signal(
             symbol=latest.symbol,

@@ -6,7 +6,7 @@
   "largest_repaired_ohlc_violation_pct": "2.082462807149441446719760002E-14",
   "ohlc_normalization_policy": "yahoo_rounding_tolerance",
   "quote_currency": "SEK",
-  "repaired_ohlc_rows": 11,
+  "repaired_ohlc_rows": 18,
   "source": "yfinance",
   "start_date": "2018-01-01",
   "symbol": "SEB-A.ST",
