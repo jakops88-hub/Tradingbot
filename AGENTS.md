@@ -14,7 +14,7 @@ Market Data -> Strategy -> Signal -> Risk Manager -> Order -> Broker -> Portfoli
 
 Core boundaries:
 
-- `data`: market-data provider interfaces, historical CSV loading, and typed market/domain models.
+- `data`: market-data provider interfaces, historical CSV loading, optional external historical adapters, dataset metadata, and typed market/domain models.
 - `strategies`: strategy interface and offline strategies; strategies emit signals and never send orders.
 - `risk`: risk profiles, position sizing, and signal-to-order approval.
 - `execution`: broker interface and paper broker implementation.
@@ -29,6 +29,7 @@ Core boundaries:
 - Use `Decimal` for money, prices, quantities, and percentage calculations where precision matters.
 - Raise clear exceptions for invalid state; do not silently swallow errors.
 - Keep live broker integrations, credentials, API keys, and real financial transactions out of the codebase.
+- Keep external data adapters isolated from core backtest and research layers.
 - Risk must never increase because a portfolio is behind a user goal; goals are tracking only.
 
 ## Test Command

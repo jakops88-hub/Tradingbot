@@ -12,6 +12,7 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+market-data = ["yfinance>=0.2.0"]
 
 [project.scripts]
 trading-bot = "trading_bot.app:main"

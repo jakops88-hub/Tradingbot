@@ -10,7 +10,9 @@ from pathlib import Path
 from trading_bot.backtest.engine import BacktestEngine
 from trading_bot.config.risk_profiles import RiskMode, get_risk_profile
 from trading_bot.data.market_data import load_csv_candles
+from trading_bot.data.metadata import require_matching_currency
 from trading_bot.data.models import Candle
+from trading_bot.data.yahoo_finance import YahooFinanceDataProvider
 from trading_bot.execution.costs import ExecutionCostConfig
 from trading_bot.execution.paper_broker import PaperBroker
 from trading_bot.research.evaluator import ResearchEvaluator, yearly_periods
@@ -49,6 +51,9 @@ def main(argv: list[str] | None = None) -> None:
     if args.command == "research":
         run_research_command(args)
         return
+    if args.command == "download":
+        run_download_command(args)
+        return
 
     run_demo()
 
@@ -81,6 +86,7 @@ def run_demo() -> None:
 def run_research_command(args: argparse.Namespace) -> None:
     data_path = Path(args.csv_path)
     risk_mode = RiskMode[args.risk.upper()]
+    require_matching_currency(data_path, args.portfolio_currency)
     costs = ExecutionCostConfig(
         percentage_fee=Decimal(args.percentage_fee),
         fixed_fee=Decimal(args.fixed_fee),
@@ -96,6 +102,18 @@ def run_research_command(args: argparse.Namespace) -> None:
     )
     report = evaluator.evaluate(candles, yearly_periods(candles))
     print_research_report(report)
+
+
+def run_download_command(args: argparse.Namespace) -> None:
+    provider = YahooFinanceDataProvider(cache_dir=args.output_dir)
+    csv_path = provider.download_to_csv(
+        symbol=args.symbol,
+        start=_parse_date(args.start),
+        end=_parse_date(args.end),
+    )
+    print(f"Downloaded normalized daily OHLCV data: {csv_path}")
+    print(f"Metadata: {csv_path}.metadata.json")
+    print("Use this file with the research command.")
 
 
 def print_research_report(report: ResearchReport) -> None:
@@ -148,10 +166,23 @@ def _build_parser() -> argparse.ArgumentParser:
     research.add_argument("csv_path", help="Path to a local OHLCV CSV file")
     research.add_argument("--symbol", default="ABC", help="Symbol label for the CSV data")
     research.add_argument("--risk", default="MEDIUM", choices=[mode.value for mode in RiskMode])
+    research.add_argument("--portfolio-currency", default="SEK")
     research.add_argument("--percentage-fee", default="0.001")
     research.add_argument("--fixed-fee", default="0.05")
     research.add_argument("--slippage", default="0.001")
+    download = subparsers.add_parser("download", help="Download normalized daily OHLCV data with yfinance")
+    download.add_argument("symbol", help="Yahoo Finance ticker, for example VOLV-B.ST")
+    download.add_argument("--start", required=True, help="Start date, YYYY-MM-DD")
+    download.add_argument("--end", required=True, help="End date, YYYY-MM-DD")
+    download.add_argument("--output-dir", default="data", help="Directory for normalized CSV cache")
     return parser
+
+
+def _parse_date(value: str) -> datetime:
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError(f"Invalid date '{value}'. Use YYYY-MM-DD.") from exc
 
 
 if __name__ == "__main__":

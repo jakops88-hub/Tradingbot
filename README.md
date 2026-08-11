@@ -22,6 +22,8 @@ Implemented:
 - Long-only EMA crossover strategy for historical simulation
 - Optional final-candle closing of open backtest positions
 - Historical research reports across independent yearly periods and full-history runs
+- Optional Yahoo Finance historical data download adapter
+- Normalized CSV cache files with sidecar dataset metadata
 - Offline pytest coverage for foundational components
 
 Not implemented yet:
@@ -72,6 +74,12 @@ python -m venv .venv
 python -m pip install -e ".[dev]"
 ```
 
+Install the optional market-data adapter when you want to download Yahoo Finance history:
+
+```powershell
+python -m pip install -e ".[market-data]"
+```
+
 ## Run Tests
 
 ```powershell
@@ -93,3 +101,19 @@ python -m trading_bot.app research .\data.csv --symbol ABC --risk MEDIUM
 ```
 
 The research command starts each yearly period with a fresh `1000 SEK` portfolio and also prints a separate continuous full-history result.
+
+Download normalized daily OHLCV data from Yahoo Finance:
+
+```powershell
+python -m trading_bot.app download VOLV-B.ST --start 2018-01-01 --end 2026-01-01
+```
+
+Downloaded files are cached under `data/`, for example `data/VOLV-B.ST_daily.csv`, with metadata stored beside it as `data/VOLV-B.ST_daily.csv.metadata.json`.
+
+Run research against downloaded data:
+
+```powershell
+python -m trading_bot.app research .\data\VOLV-B.ST_daily.csv --symbol VOLV-B.ST --risk MEDIUM
+```
+
+If dataset metadata says the instrument quote currency differs from the portfolio currency, the command fails clearly. FX conversion is not implemented.
