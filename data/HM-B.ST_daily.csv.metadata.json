@@ -3,7 +3,7 @@
   "auto_adjust": true,
   "end_date": "2026-01-01",
   "interval": "1d",
-  "largest_repaired_ohlc_violation_pct": "8.858518832564113215873053322E-15",
+  "largest_repaired_ohlc_violation_pct": "8.319297542431406920294722367E-15",
   "ohlc_normalization_policy": "yahoo_rounding_tolerance",
   "quote_currency": "SEK",
   "repaired_ohlc_rows": 1,

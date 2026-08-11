@@ -28,6 +28,7 @@ Implemented:
 - Stop-loss execution in historical backtests with fees and slippage applied
 - Research diagnostics for position value, exposure, stop-loss exits, and monetary risk at entry
 - One-click locked EMA 20/50 multi-market sweep for Swedish large-cap symbols
+- Local ML Decision Engine v1 research using `StandardScaler -> LogisticRegression`
 - Offline pytest coverage for foundational components
 
 Not implemented yet:
@@ -35,6 +36,7 @@ Not implemented yet:
 - Live trading
 - Real broker integrations
 - Strategy optimization or profitability claims
+- Neural networks, LLM APIs, or automatic parameter tuning
 - Dashboard or web UI
 
 ## Architecture
@@ -129,6 +131,20 @@ reports/market_sweep.txt
 Locked sweep settings are `1000 SEK`, `MEDIUM` risk, `0.1%` percentage fee, `0.1%` slippage, `5%` initial stop loss, adjusted prices, and daily candles from `2018-01-01` to `2026-01-01`.
 
 Yahoo Finance data uses `auto_adjust=True` and explicitly sets `repair=False` because yfinance's repair path may require optional SciPy support. TradingBot applies its own Yahoo-only OHLC ordering repair for tiny adjusted-price rounding artifacts up to `0.000001%` of price. Core `Candle` validation and local CSV validation remain strict. The market sweep report includes a Data Quality section with candle counts, repaired OHLC rows, largest repaired violation, and pass/fail status per symbol.
+
+Run the locked ML Decision Engine v1 walk-forward research by double-clicking:
+
+```text
+run_ml_research.bat
+```
+
+The ML runner downloads or refreshes the same ten Swedish symbols, pools them for training, evaluates out-of-sample yearly folds, and saves the report to:
+
+```text
+reports/ml_research.txt
+```
+
+ML v1 uses only local scikit-learn components: `StandardScaler -> LogisticRegression`. Features are built from data available at candle close: 1-day, 5-day, and 20-day returns; EMA20 vs EMA50; close vs EMA20; RSI14; ATR14 divided by close; 20-day volatility; and volume versus 20-day average. The target is positive return for a trade entered at candle `N+1` open and exited at candle `N+11` open. Symbol identity is not used as a feature.
 
 ## Backtest Execution Timing
 

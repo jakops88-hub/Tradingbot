@@ -6,7 +6,7 @@
   "largest_repaired_ohlc_violation_pct": "1.597776629067010556917304655E-14",
   "ohlc_normalization_policy": "yahoo_rounding_tolerance",
   "quote_currency": "SEK",
-  "repaired_ohlc_rows": 1,
+  "repaired_ohlc_rows": 2,
   "source": "yfinance",
   "start_date": "2018-01-01",
   "symbol": "SAND.ST",

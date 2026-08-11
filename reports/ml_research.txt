@@ -1,0 +1,159 @@
+TradingBot one-click ML research report
+Symbols: config\swedish_large_caps.txt
+Period: 2018-01-01 to 2026-01-01
+Starting capital per instrument: 1000 SEK
+Risk profile: MEDIUM
+Percentage fee: 0.1%
+Slippage: 0.1%
+
+TradingBot ML Decision Engine v1 walk-forward research
+This is out-of-sample historical research, not evidence of future profitability.
+Model: StandardScaler -> LogisticRegression
+Target: positive return from candle N+1 open to candle N+11 open.
+Locked settings: threshold 60%, 5% stop, 10-day max hold, MEDIUM risk, 1000 SEK, 0.1% fee, 0.1% slippage
+
+Fold: train 2018-2021, test 2022
+Training samples: 9440
+Out-of-sample predictions: 2530
+Prediction metrics: accuracy=0.5644, precision=0.5896, recall=0.4988, roc_auc=0.5966
+Symbol      Strategy        Return    Max DD  Trades     Win      Ending
+VOLV-B.ST   ML              +3.17%     3.56%      34  52.94%     1031.69
+VOLV-B.ST   EMA20/50        -1.14%     3.22%       6  33.33%      988.55
+VOLV-B.ST   Buy & Hold      -4.36%    27.56%       1   0.00%      956.44
+ERIC-B.ST   ML              -4.98%     6.39%      38  42.11%      950.19
+ERIC-B.ST   EMA20/50        -2.61%     2.61%       6   0.00%      973.91
+ERIC-B.ST   Buy & Hold     -37.33%    47.09%       1   0.00%      626.69
+SEB-A.ST    ML              +1.63%     4.60%      34  58.82%     1016.30
+SEB-A.ST    EMA20/50        -3.13%     3.87%      10  20.00%      968.74
+SEB-A.ST    Buy & Hold      -0.93%    25.81%       1   0.00%      990.68
+SHB-A.ST    ML              +2.02%     3.96%      24  50.00%     1020.21
+SHB-A.ST    EMA20/50        -3.39%     4.08%       6   0.00%      966.11
+SHB-A.ST    Buy & Hold     +11.67%    17.86%       1 100.00%     1116.70
+SWED-A.ST   ML              +0.02%     5.32%      30  40.00%     1000.20
+SWED-A.ST   EMA20/50        +2.68%     2.11%       6  33.33%     1026.83
+SWED-A.ST   Buy & Hold      +3.11%    28.14%       1 100.00%     1031.09
+HM-B.ST     ML              -4.64%     8.30%      54  29.63%      953.64
+HM-B.ST     EMA20/50        -4.22%     4.22%       8   0.00%      957.82
+HM-B.ST     Buy & Hold     -33.90%    45.46%       1   0.00%      661.03
+ATCO-A.ST   ML              -5.26%    10.27%      46  26.09%      947.35
+ATCO-A.ST   EMA20/50        +0.17%     2.02%       4  50.00%     1001.70
+ATCO-A.ST   Buy & Hold     -21.06%    42.10%       1   0.00%      789.41
+INVE-B.ST   ML              -1.11%     4.11%      32  37.50%      988.95
+INVE-B.ST   EMA20/50        -1.07%     2.30%       6  33.33%      989.31
+INVE-B.ST   Buy & Hold     -16.42%    30.57%       1   0.00%      835.84
+ASSA-B.ST   ML              -0.38%     3.54%      38  52.63%      996.19
+ASSA-B.ST   EMA20/50        -1.89%     2.44%       6  33.33%      981.13
+ASSA-B.ST   Buy & Hold     -18.69%    27.11%       1   0.00%      813.06
+SAND.ST     ML              -3.55%     7.82%      50  36.00%      964.52
+SAND.ST     EMA20/50        -1.06%     3.10%       8  25.00%      989.38
+SAND.ST     Buy & Hold     -21.04%    39.24%       1   0.00%      789.56
+
+Fold: train 2018-2022, test 2023
+Training samples: 11970
+Out-of-sample predictions: 2510
+Prediction metrics: accuracy=0.4653, precision=0.7866, recall=0.1338, roc_auc=0.5493
+Symbol      Strategy        Return    Max DD  Trades     Win      Ending
+VOLV-B.ST   ML              +0.11%     1.28%       6  66.67%     1001.08
+VOLV-B.ST   EMA20/50        +2.38%     0.22%       2 100.00%     1023.79
+VOLV-B.ST   Buy & Hold     +45.86%    10.66%       1 100.00%     1458.59
+ERIC-B.ST   ML              +1.61%     1.93%      18  66.67%     1016.10
+ERIC-B.ST   EMA20/50        -2.73%     4.94%      10  20.00%      972.71
+ERIC-B.ST   Buy & Hold      +6.07%    23.53%       1 100.00%     1060.67
+SEB-A.ST    ML              +0.06%     1.91%       6  66.67%     1000.64
+SEB-A.ST    EMA20/50        -0.23%     1.16%       4  50.00%      997.74
+SEB-A.ST    Buy & Hold     +21.96%    18.26%       1 100.00%     1219.61
+SHB-A.ST    ML              +3.82%     1.29%      10 100.00%     1038.23
+SHB-A.ST    EMA20/50        +3.92%     2.11%       2 100.00%     1039.24
+SHB-A.ST    Buy & Hold     +11.45%    18.76%       1 100.00%     1114.52
+SWED-A.ST   ML              +3.24%     1.27%      10 100.00%     1032.44
+SWED-A.ST   EMA20/50        -0.91%     2.02%       6  33.33%      990.91
+SWED-A.ST   Buy & Hold     +19.45%    21.88%       1 100.00%     1194.55
+HM-B.ST     ML              +7.33%     1.97%      12  66.67%     1073.26
+HM-B.ST     EMA20/50        +3.40%     4.62%       8  50.00%     1033.95
+HM-B.ST     Buy & Hold     +58.64%    21.99%       1 100.00%     1586.45
+ATCO-A.ST   ML              +1.88%     2.20%      14  71.43%     1018.82
+ATCO-A.ST   EMA20/50        +3.38%     4.53%       8  50.00%     1033.83
+ATCO-A.ST   Buy & Hold     +41.32%    14.12%       1 100.00%     1413.21
+INVE-B.ST   ML              +2.25%     0.86%       6 100.00%     1022.48
+INVE-B.ST   EMA20/50        -0.53%     4.13%      12  33.33%      994.70
+INVE-B.ST   Buy & Hold     +25.10%    10.03%       1 100.00%     1251.01
+ASSA-B.ST   ML              +1.53%     1.69%      10  60.00%     1015.34
+ASSA-B.ST   EMA20/50        +3.70%     1.39%       4 100.00%     1036.96
+ASSA-B.ST   Buy & Hold     +30.96%    14.91%       1 100.00%     1309.57
+SAND.ST     ML              +1.66%     2.16%      14  57.14%     1016.60
+SAND.ST     EMA20/50        -4.60%     6.36%      16  12.50%      953.99
+SAND.ST     Buy & Hold     +15.80%    16.94%       1 100.00%     1158.01
+
+Fold: train 2018-2023, test 2024
+Training samples: 14480
+Out-of-sample predictions: 2510
+Prediction metrics: accuracy=0.4829, precision=0.6962, recall=0.1794, roc_auc=0.5445
+Symbol      Strategy        Return    Max DD  Trades     Win      Ending
+VOLV-B.ST   ML              +6.37%     0.52%      14 100.00%     1063.74
+VOLV-B.ST   EMA20/50        -1.98%     1.98%       4   0.00%      980.16
+VOLV-B.ST   Buy & Hold      +9.40%    17.10%       1 100.00%     1094.02
+ERIC-B.ST   ML              +1.67%     1.12%      10  80.00%     1016.74
+ERIC-B.ST   EMA20/50       +11.71%     1.50%       2 100.00%     1117.09
+ERIC-B.ST   Buy & Hold     +46.86%    14.56%       1 100.00%     1468.65
+SEB-A.ST    ML              +1.71%     0.43%       6 100.00%     1017.11
+SEB-A.ST    EMA20/50        -2.59%     2.60%       6   0.00%      974.13
+SEB-A.ST    Buy & Hold     +16.61%    11.91%       1 100.00%     1166.12
+SHB-A.ST    ML              +2.25%     0.64%       8  75.00%     1022.48
+SHB-A.ST    EMA20/50        -0.34%     2.22%       4  50.00%      996.63
+SHB-A.ST    Buy & Hold     +16.17%    15.56%       1 100.00%     1161.66
+SWED-A.ST   ML              +1.88%     0.93%       8 100.00%     1018.82
+SWED-A.ST   EMA20/50        -2.29%     2.78%       6   0.00%      977.07
+SWED-A.ST   Buy & Hold     +14.36%    11.27%       1 100.00%     1143.60
+HM-B.ST     ML              +3.27%     2.82%      26  53.85%     1032.73
+HM-B.ST     EMA20/50        -2.22%     2.22%       4   0.00%      977.81
+HM-B.ST     Buy & Hold     -11.99%    22.13%       1   0.00%      880.14
+ATCO-A.ST   ML              -2.59%     3.63%      20  40.00%      974.13
+ATCO-A.ST   EMA20/50        -0.97%     1.00%       2   0.00%      990.28
+ATCO-A.ST   Buy & Hold      +0.23%    17.42%       1 100.00%     1002.27
+INVE-B.ST   ML              +1.04%     0.71%       8  75.00%     1010.37
+INVE-B.ST   EMA20/50        -0.81%     0.81%       2   0.00%      991.88
+INVE-B.ST   Buy & Hold     +27.13%    10.14%       1 100.00%     1271.32
+ASSA-B.ST   ML              +0.99%     0.26%       4 100.00%     1009.92
+ASSA-B.ST   EMA20/50        -0.80%     2.20%       2   0.00%      992.01
+ASSA-B.ST   Buy & Hold     +15.26%     9.05%       1 100.00%     1152.62
+SAND.ST     ML              -0.30%     2.89%      22  36.36%      997.01
+SAND.ST     EMA20/50        -2.31%     2.73%       4   0.00%      976.93
+SAND.ST     Buy & Hold      -6.94%    17.45%       1   0.00%      930.55
+
+Fold: train 2018-2024, test 2025
+Training samples: 16990
+Out-of-sample predictions: 2380
+Prediction metrics: accuracy=0.4613, precision=0.6703, recall=0.2122, roc_auc=0.5511
+Symbol      Strategy        Return    Max DD  Trades     Win      Ending
+VOLV-B.ST   ML              +2.25%     2.49%      24  66.67%     1022.47
+VOLV-B.ST   EMA20/50        -1.44%     6.35%       8  25.00%      985.64
+VOLV-B.ST   Buy & Hold     +17.09%    28.45%       1 100.00%     1170.90
+ERIC-B.ST   ML              +0.95%     4.36%      18  44.44%     1009.47
+ERIC-B.ST   EMA20/50        +1.57%     2.78%       6  33.33%     1015.75
+ERIC-B.ST   Buy & Hold      +3.30%    29.40%       1 100.00%     1032.99
+SEB-A.ST    ML              +3.99%     1.09%      12  50.00%     1039.90
+SEB-A.ST    EMA20/50        +3.46%     3.98%       4  50.00%     1034.60
+SEB-A.ST    Buy & Hold     +37.23%    21.69%       1 100.00%     1372.29
+SHB-A.ST    ML              +3.43%     0.83%      10  80.00%     1034.32
+SHB-A.ST    EMA20/50        +0.72%     3.73%       6  33.33%     1007.23
+SHB-A.ST    Buy & Hold     +30.56%    16.26%       1 100.00%     1305.55
+SWED-A.ST   ML              +4.10%     0.29%       6 100.00%     1041.04
+SWED-A.ST   EMA20/50        +6.44%     1.43%       2 100.00%     1064.39
+SWED-A.ST   Buy & Hold     +59.79%    19.22%       1 100.00%     1597.86
+HM-B.ST     ML              -0.58%     4.58%      22  36.36%      994.17
+HM-B.ST     EMA20/50        +4.14%     3.16%       6  33.33%     1041.39
+HM-B.ST     Buy & Hold     +30.74%    20.19%       1 100.00%     1307.38
+ATCO-A.ST   ML              -0.35%     4.42%      32  43.75%      996.46
+ATCO-A.ST   EMA20/50        -3.84%     4.51%       8   0.00%      961.65
+ATCO-A.ST   Buy & Hold      -1.36%    28.69%       1   0.00%      986.38
+INVE-B.ST   ML              +1.99%     2.44%      20  60.00%     1019.86
+INVE-B.ST   EMA20/50        +0.98%     2.08%       6  33.33%     1009.75
+INVE-B.ST   Buy & Hold     +13.64%    22.04%       1 100.00%     1136.39
+ASSA-B.ST   ML              -1.29%     4.93%      18  55.56%      987.06
+ASSA-B.ST   EMA20/50        +0.85%     2.17%       6  33.33%     1008.51
+ASSA-B.ST   Buy & Hold     +11.57%    23.63%       1 100.00%     1115.66
+SAND.ST     ML              +3.39%     1.80%      14  57.14%     1033.85
+SAND.ST     EMA20/50        -2.18%     2.93%       4   0.00%      978.18
+SAND.ST     Buy & Hold     +53.77%    27.84%       1 100.00%     1537.72
+
+Real-money trading: unavailable

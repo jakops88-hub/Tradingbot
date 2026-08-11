@@ -32,6 +32,7 @@ Core boundaries:
 - Keep external data adapters isolated from core backtest and research layers.
 - Keep Yahoo-specific OHLC repairs inside `YahooFinanceDataProvider`; core `Candle` and CSV validation must remain strict.
 - Backtest signals generated from candle `N` must execute no earlier than candle `N+1` open; do not reintroduce same-bar close fills.
+- ML research must stay local and deterministic; do not add LLM APIs, neural networks, automatic tuning, or symbol identity as a predictive feature.
 - Risk must never increase because a portfolio is behind a user goal; goals are tracking only.
 
 ## Test Command

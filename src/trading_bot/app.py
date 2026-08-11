@@ -15,6 +15,7 @@ from trading_bot.data.models import Candle
 from trading_bot.data.yahoo_finance import YahooFinanceDataProvider
 from trading_bot.execution.costs import ExecutionCostConfig
 from trading_bot.execution.paper_broker import PaperBroker
+from trading_bot.ml.walk_forward import MLResearchReport, MLWalkForwardEvaluator
 from trading_bot.research.evaluator import ResearchEvaluator, yearly_periods
 from trading_bot.research.market_sweep import (
     MarketSweepEvaluator,
@@ -65,6 +66,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.command == "market-sweep":
         run_market_sweep_command(args)
+        return
+    if args.command == "ml-research":
+        run_ml_research_command(args)
         return
 
     run_demo()
@@ -169,6 +173,45 @@ def run_market_sweep_command(args: argparse.Namespace) -> None:
     print_market_sweep_report(evaluator.evaluate(symbols))
 
 
+def run_ml_research_command(args: argparse.Namespace) -> None:
+    symbols = load_symbol_config(args.symbols)
+    output_dir = Path(args.output_dir)
+    costs = ExecutionCostConfig(
+        percentage_fee=Decimal("0.001"),
+        fixed_fee=Decimal("0"),
+        slippage_percentage=Decimal("0.001"),
+    )
+    provider = YahooFinanceDataProvider(
+        cache_dir=output_dir,
+        adjustment_policy=LOCKED_ADJUSTMENT_POLICY,
+    )
+    datasets: dict[str, list[Candle]] = {}
+    for symbol in symbols:
+        csv_path = provider.download_to_csv(
+            symbol=symbol,
+            start=LOCKED_START_DATE,
+            end=LOCKED_END_DATE,
+        )
+        require_matching_currency(csv_path, "SEK")
+        candles = [
+            candle
+            for candle in load_csv_candles(csv_path, symbol)
+            if LOCKED_START_DATE <= candle.timestamp <= LOCKED_END_DATE
+        ]
+        if candles:
+            datasets[symbol] = candles
+    if not datasets:
+        raise ValueError("No datasets available for ML research")
+
+    evaluator = MLWalkForwardEvaluator(
+        risk_profile=get_risk_profile(RiskMode.MEDIUM),
+        broker_factory=lambda: PaperBroker(costs),
+        starting_capital=Decimal("1000"),
+        probability_threshold=Decimal("0.60"),
+    )
+    print_ml_research_report(evaluator.evaluate(datasets))
+
+
 def print_research_report(report: ResearchReport) -> None:
     print("TradingBot EMA 20/50 historical research")
     print("This is a historical simulation, not evidence of future profitability.")
@@ -259,6 +302,44 @@ def print_market_sweep_report(report: MarketSweepReport) -> None:
     print("Real-money trading: unavailable")
 
 
+def print_ml_research_report(report: MLResearchReport) -> None:
+    print("TradingBot ML Decision Engine v1 walk-forward research")
+    print("This is out-of-sample historical research, not evidence of future profitability.")
+    print("Model: StandardScaler -> LogisticRegression")
+    print("Target: positive return from candle N+1 open to candle N+11 open.")
+    print("Locked settings: threshold 60%, 5% stop, 10-day max hold, MEDIUM risk, 1000 SEK, 0.1% fee, 0.1% slippage")
+    print("")
+    for fold in report.folds:
+        metrics = fold.prediction_metrics
+        print(f"Fold: train {fold.fold.train_start_year}-{fold.fold.train_end_year}, test {fold.fold.test_year}")
+        print(f"Training samples: {fold.training_samples}")
+        print(f"Out-of-sample predictions: {metrics.predictions}")
+        print(
+            "Prediction metrics: "
+            f"accuracy={_format_decimal(metrics.accuracy)}, "
+            f"precision={_format_decimal(metrics.precision)}, "
+            f"recall={_format_decimal(metrics.recall)}, "
+            f"roc_auc={_format_decimal(metrics.roc_auc) if metrics.roc_auc is not None else 'n/a'}"
+        )
+        print(
+            f"{'Symbol':<12}{'Strategy':<12}{'Return':>10}{'Max DD':>10}"
+            f"{'Trades':>8}{'Win':>8}{'Ending':>12}"
+        )
+        for comparison in fold.symbol_results:
+            for result in (comparison.ml, comparison.ema, comparison.buy_and_hold):
+                print(
+                    f"{comparison.symbol:<12}"
+                    f"{result.strategy_name:<12}"
+                    f"{_format_pct(result.return_pct):>10}"
+                    f"{_format_pct(result.max_drawdown * Decimal('100'), signed=False):>10}"
+                    f"{result.trades:>8}"
+                    f"{_format_pct(result.win_rate * Decimal('100'), signed=False):>8}"
+                    f"{result.ending_capital.quantize(Decimal('0.01')):>12}"
+                )
+        print("")
+    print("Real-money trading: unavailable")
+
+
 def _market_sweep_row(result: MarketSweepInstrumentResult) -> str:
     return (
         f"{result.symbol:<12}"
@@ -300,6 +381,10 @@ def _format_data_quality_pct(value: Decimal) -> str:
     return f"{value:.2E}%"
 
 
+def _format_decimal(value: Decimal) -> str:
+    return str(value.quantize(Decimal("0.0001")))
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="TradingBot offline tools")
     subparsers = parser.add_subparsers(dest="command")
@@ -325,6 +410,9 @@ def _build_parser() -> argparse.ArgumentParser:
     market_sweep = subparsers.add_parser("market-sweep", help="Run locked EMA 20/50 sweep across configured Swedish symbols")
     market_sweep.add_argument("--symbols", default="config/swedish_large_caps.txt")
     market_sweep.add_argument("--output-dir", default="data")
+    ml_research = subparsers.add_parser("ml-research", help="Run walk-forward ML decision research")
+    ml_research.add_argument("--symbols", default="config/swedish_large_caps.txt")
+    ml_research.add_argument("--output-dir", default="data")
     return parser
 
 
