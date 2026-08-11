@@ -8,43 +8,124 @@ OpenAI advisory limit: top 3 candidates
 TradingBot current-market XGBoost + OpenAI advisory scan
 This is a research scan only. It cannot trade real money.
 OpenAI is advisory only and cannot change risk settings, stops, exposure, or call a broker.
+Scan timestamp: 2026-08-11T12:53:13.852962
 
-Rank  Symbol        XGB Prob    Momentum  Volatility      Volume
-   1  ERIC-B.ST       56.55%      -0.92%       0.60%      +2.43%
-   2  INVE-B.ST       54.57%      +2.32%       0.73%      +8.92%
-   3  SEB-A.ST        53.61%      +4.00%       0.71%     -12.57%
-   4  SWED-A.ST       52.83%      +7.25%       0.81%     -10.13%
-   5  SHB-A.ST        52.74%      +2.01%       0.83%      +1.83%
-   6  ASSA-B.ST       52.52%      +0.08%       0.88%     -11.93%
-   7  SAND.ST         51.52%      +5.62%       1.10%     -15.20%
-   8  VOLV-B.ST       51.04%      +4.01%       1.26%      -8.12%
-   9  ATCO-A.ST       50.60%      +4.66%       1.16%     -10.38%
-  10  HM-B.ST         44.84%      +7.05%       1.42%     -40.72%
+Rank  Symbol        XGB Prob     20d Ret     20d Vol      Volume           Latest Candle     Age       Close
+   1  SAND.ST         56.81%      -6.09%       2.66%     -48.56%     2026-08-10T00:00:00       0367.1000061035156
+   2  ERIC-B.ST       56.55%     -13.23%       3.23%     -39.52%     2026-08-10T00:00:00       095.62000274658203
+   3  SHB-A.ST        55.79%      +2.41%       1.19%     -42.07%     2026-08-10T00:00:00       0146.85000610351562
+   4  SWED-A.ST       55.72%      +4.09%       1.15%      +4.17%     2026-08-10T00:00:00       0378.8999938964844
+   5  INVE-B.ST       54.91%      +7.18%       0.78%     -16.06%     2026-08-10T00:00:00       0422.70001220703125
+   6  VOLV-B.ST       52.40%      +5.25%       1.10%     -29.54%     2026-08-10T00:00:00       0354.6000061035156
+   7  HM-B.ST         51.29%      +8.16%       1.26%     -21.86%     2026-08-10T00:00:00       0179.5500030517578
+   8  ATCO-A.ST       44.23%     +10.26%       1.70%     -29.37%     2026-08-10T00:00:00       0210.6999969482422
+   9  ASSA-B.ST       39.07%      +8.38%       1.49%     -48.46%     2026-08-10T00:00:00       0363.3999938964844
+  10  SEB-A.ST        29.27%     +10.55%       1.36%     -20.02%     2026-08-10T00:00:00       0222.10000610351562
 
 OpenAI analyses requested for top 3 candidates
 
+SAND.ST | XGBoost probability: 56.81%
+Normalized candidate snapshot sent to OpenAI
+- symbol: SAND.ST
+- decision_timestamp: 2026-08-10T00:00:00
+- close_price: 367.1000061035156
+- data_age_trading_days: 0
+- xgboost_probability_pct: 56.8130731582641600
+- return_1d_pct: 0.492750717409549427534325000
+- return_5d_pct: 2.829133362329299719887955200
+- return_20d_pct: -6.088510658629316412663871430
+- ema20_vs_ema50_pct: -1.684554097940962410780989410
+- close_vs_ema20_pct: 0.655799302875437613701998100
+- rsi14: 71.82319207723806724297029794
+- atr14_over_close_pct: 2.447756269241157520263674511
+- volatility_20d_pct: 2.659539626111477230423044254
+- volume_vs_20d_pct: -48.56340611070159696926858024
+- portfolio_exposure_pct: 0
+Model used: gpt-5.6-terra
+Structured Output used: YES
+Web search used: YES
+Web searches: 2
+Sources:
+- Investors: https://www.home.sandvik/en/investors/?utm_source=openai
+- Sandvik drops 8% as Q2 order miss overshadows earnings beat By Investing.com: https://www.investing.com/news/earnings/sandvik-drops-8-as-q2-order-miss-overshadows-earnings-beat-4797830?utm_source=openai
+OpenAI: WATCH, confidence 78.00%, sentiment NEUTRAL, regime UNCERTAIN
+HTTP status: n/a
+OpenAI error type: n/a
+OpenAI error code: n/a
+Summary: WATCH rather than approve. Fundamentals are constructive after a strong Q2, but the market focused on weaker-than-expected order intake, while the price remains below its medium-term trend and the latest rebound occurred on subdued volume. For a Swedish SEK portfolio with medium risk and no leverage, this is better treated as a candidate awaiting confirmation of a sustained trend recovery rather than a high-conviction entry.
+Positive factors: Sandvik’s Q2 2026 operating performance was strong: revenue growth was 24% at fixed exchange rates, adjusted EBITA margin was 22.6%, and management described record order intake, revenue and profit. ([home.sandvik](https://www.home.sandvik/en/investors/?utm_source=openai)), The candidate has rebounded over the past 1 and 5 trading days (+0.49% and +2.83%) and closed marginally above its 20-day EMA (+0.66%), indicating a short-term recovery attempt., The share is SEK-denominated and therefore carries no direct transaction-currency mismatch for a SEK portfolio.
+Negative factors: The key forward-looking Q2 metric disappointed: order intake of SEK 37.799bn was about 3.7% below analyst consensus of SEK 39.241bn, and the shares fell sharply following the report despite the earnings beat. ([investing.com](https://www.investing.com/news/earnings/sandvik-drops-8-as-q2-order-miss-overshadows-earnings-beat-4797830?utm_source=openai)), The medium-term technical setup remains weak: the share is down 6.09% over 20 trading days and EMA20 is still 1.68% below EMA50., RSI(14) of 71.8 is extended, making a near-term pullback or failed rebound more plausible than a clean low-risk entry.
+Risk flags: Volume was 48.56% below its 20-day average, so the recent bounce lacks strong participation., ATR/close of 2.45% and 20-day volatility of 2.66% imply meaningful daily price variability for a medium-risk portfolio., The next scheduled report is Q3 on October 22, 2026; until then, the prior order-intake miss can remain an overhang on expectations. ([home.sandvik](https://www.home.sandvik/en/investors/?utm_source=openai)), No current portfolio exposure leaves capacity, but capacity alone does not offset the mixed trend and elevated RSI.
+
 ERIC-B.ST | XGBoost probability: 56.55%
-OpenAI: WATCH, confidence 0.00%, sentiment NEUTRAL, regime UNCERTAIN
-Safe failure: OPENAI_API_KEY is not configured
-Summary: No AI advisory recommendation was produced.
-Positive factors: none
-Negative factors: none
-Risk flags: OpenAI advisory unavailable
+Normalized candidate snapshot sent to OpenAI
+- symbol: ERIC-B.ST
+- decision_timestamp: 2026-08-10T00:00:00
+- close_price: 95.62000274658203
+- data_age_trading_days: 0
+- xgboost_probability_pct: 56.5480709075927700
+- return_1d_pct: -1.116850295495063204528096700
+- return_5d_pct: -0.6029045946562869587027857800
+- return_20d_pct: -13.23048512288795194067256887
+- ema20_vs_ema50_pct: -4.957011639717094597743368020
+- close_vs_ema20_pct: -2.104492804007373610669107610
+- rsi14: 54.50941443830757389781642665
+- atr14_over_close_pct: 2.308242279717822236061750127
+- volatility_20d_pct: 3.230023053522431666471371069
+- volume_vs_20d_pct: -39.51537165803736008696897376
+- portfolio_exposure_pct: 0
+Model used: gpt-5.6-terra
+Structured Output used: YES
+Web search used: YES
+Web searches: 2
+Sources:
+- Ericsson reports second quarter results 2026 - Ericsson: https://news.cision.com/ericsson/r/ericsson-reports-second-quarter-results-2026%2Cc4374341
+OpenAI: WATCH, confidence 78.00%, sentiment NEGATIVE, regime BEARISH
+HTTP status: n/a
+OpenAI error type: n/a
+OpenAI error code: n/a
+Summary: WATCH rather than initiate now. Ericsson has balance-sheet strength and an active SEK-denominated buyback tailwind, but the current candidate is technically bearish, has weak participation, and follows a mixed Q2 report. For a Swedish investor with medium risk and no current exposure, the evidence favors waiting for clearer price/volume confirmation over the EMA20 and an improvement in the short-term trend before considering the candidate. ([news.cision.com](https://news.cision.com/ericsson/r/ericsson-reports-second-quarter-results-2026%2Cc4374341))
+Positive factors: Data is current (0 trading-day lag) and the portfolio has 0% existing exposure to ERIC-B.ST., Ericsson reported resilient Q2 2026 adjusted gross margin of 48.4%, SEK 59.8bn net cash, and continued shareholder returns; its authorized share-buyback program totals up to SEK 15bn through March 31, 2027. ([news.cision.com](https://news.cision.com/ericsson/r/ericsson-reports-second-quarter-results-2026%2Cc4374341)), RSI(14) at 54.5 is not oversold, leaving room for a technical stabilization if price and volume improve.
+Negative factors: The technical trend is unfavorable: 20-day return is -13.23%, EMA20 is 4.96% below EMA50, and the close is 2.10% below EMA20., Recent momentum remains weak, with declines over both 1 day (-1.12%) and 5 days (-0.60%)., Volume is 39.52% below its 20-day average, so there is limited evidence that buyers are convincingly supporting a reversal., The model probability of 56.55% is only modestly positive and does not outweigh the bearish trend evidence., Q2 reported sales fell 6% year-on-year, net income fell 12%, free cash flow before M&A fell 85%, and management flagged potential Q3 Networks margin pressure from rollout volumes and component-cost inflation. ([news.cision.com](https://news.cision.com/ericsson/r/ericsson-reports-second-quarter-results-2026%2Cc4374341))
+Risk flags: ATR14/close of 2.31% and 20-day volatility of 3.23% indicate meaningful short-term price variability for a medium-risk SEK portfolio., The price is materially below its 20-day level but RSI is neutral rather than deeply oversold; a sustained downtrend can continue without a sharp mean reversion., The completed-candle timestamp is August 10, 2026; this assessment does not assume intraday developments after that close., No leverage is appropriate under the supplied constraints.
 
-INVE-B.ST | XGBoost probability: 54.57%
-OpenAI: WATCH, confidence 0.00%, sentiment NEUTRAL, regime UNCERTAIN
-Safe failure: OPENAI_API_KEY is not configured
-Summary: No AI advisory recommendation was produced.
-Positive factors: none
-Negative factors: none
-Risk flags: OpenAI advisory unavailable
-
-SEB-A.ST | XGBoost probability: 53.61%
-OpenAI: WATCH, confidence 0.00%, sentiment NEUTRAL, regime UNCERTAIN
-Safe failure: OPENAI_API_KEY is not configured
-Summary: No AI advisory recommendation was produced.
-Positive factors: none
-Negative factors: none
-Risk flags: OpenAI advisory unavailable
+SHB-A.ST | XGBoost probability: 55.79%
+Normalized candidate snapshot sent to OpenAI
+- symbol: SHB-A.ST
+- decision_timestamp: 2026-08-10T00:00:00
+- close_price: 146.85000610351562
+- data_age_trading_days: 0
+- xgboost_probability_pct: 55.7945489883422900
+- return_1d_pct: -0.3054969035432141326283003000
+- return_5d_pct: 0.034062023650088240068520000
+- return_20d_pct: 2.405866355560438499272037900
+- ema20_vs_ema50_pct: 2.466859190577747622997048700
+- close_vs_ema20_pct: 1.532487838518551305725012700
+- rsi14: 71.70867605046258098908961999
+- atr14_over_close_pct: 1.374092529221781693649343762
+- volatility_20d_pct: 1.193252862604296332050246099
+- volume_vs_20d_pct: -42.07411198827230610556573494
+- portfolio_exposure_pct: 0
+Model used: gpt-5.6-terra
+Structured Output used: YES
+Web search used: YES
+Web searches: 2
+Sources:
+- Svenska Handelsbanken AB (via Public) / Handelsbanken's Interim Report January - June 2026: https://ebs.publicnow.com/view/5B7F85A6E47AF473F2CB03BBD0F194789B8D3051?utm_source=openai
+- Monetary policy decision | Sveriges Riksbank: https://www.riksbank.se/en-gb/monetary-policy/monetary-policy-report/2026/monetary-policy-decision-june-2026/?utm_source=openai
+- Investor relations | Handelsbanken: https://www.handelsbanken.com/en/investor-relations?utm_source=openai
+OpenAI: WATCH, confidence 74.00%, sentiment NEUTRAL, regime BULLISH
+HTTP status: n/a
+OpenAI error type: n/a
+OpenAI error code: n/a
+Summary: WATCH rather than approve at the August 10, 2026 close of SEK 146.85. SHB-A has a favourable medium-term technical trend and resilient capital/credit metrics, but the entry setup is not well confirmed: momentum is stretched, turnover is materially below average, and the XGBoost score is only modestly above neutral. With a Swedish rate decision due on August 20, 2026 and no current portfolio exposure, waiting for either stronger volume confirmation or a less extended price condition is more consistent with a medium-risk, unleveraged SEK portfolio.
+Positive factors: Trend structure is constructive: the close is 1.53% above the 20-day EMA and the 20-day EMA is 2.47% above the 50-day EMA., The share is up 2.41% over 20 trading days and volatility is moderate for an equity at 1.19% over 20 days; ATR is 1.37% of price., Handelsbanken reported a robust Q2 2026 capital position, with a CET1 ratio of 17.2% and a 0.00% credit-loss ratio. ([ebs.publicnow.com](https://ebs.publicnow.com/view/5B7F85A6E47AF473F2CB03BBD0F194789B8D3051?utm_source=openai)), Portfolio exposure is currently 0%, so there is no existing single-name concentration in SHB-A.ST.
+Negative factors: The model probability is only marginally constructive at 55.79%, insufficient by itself to offset weaker confirmation signals., RSI(14) is 71.71, placing the share in an extended/overbought short-term condition after the recent advance., Volume was 42.07% below its 20-day average, reducing confidence that the latest move has broad participation., Q2 operating profit was SEK 6,678m versus SEK 8,195m in Q1; adjusted operating profit declined 6% quarter-on-quarter. First-half adjusted operating profit declined 10% year-on-year. ([ebs.publicnow.com](https://ebs.publicnow.com/view/5B7F85A6E47AF473F2CB03BBD0F194789B8D3051?utm_source=openai)), The Riksbank’s next policy announcement is scheduled for August 20, 2026. Its current 1.75% policy rate and stated possibility of a later 2026 increase leave Swedish-bank net-interest-income expectations sensitive to the decision and guidance. ([riksbank.se](https://www.riksbank.se/en-gb/monetary-policy/monetary-policy-report/2026/monetary-policy-decision-june-2026/?utm_source=openai))
+Risk flags: Event risk: Riksbank decision and monetary-policy update on August 20, 2026., Bank-sector sensitivity to policy-rate expectations, Swedish growth, mortgage/credit conditions, and funding markets., Low-volume advance combined with RSI above 70 raises pullback risk., Next company earnings catalyst is not imminent—the January–September 2026 report is scheduled for October 21, 2026—so near-term price action may be driven more by macro and rate expectations than company-specific news. ([handelsbanken.com](https://www.handelsbanken.com/en/investor-relations?utm_source=openai))
 
 Real-money trading: unavailable
+Current data cache: data\current
+Latest expected completed daily candle: 2026-08-10
+Invalid stale database decisions: 3
+Forward decisions saved to database: 3
+Database: data\tradingbot.sqlite3

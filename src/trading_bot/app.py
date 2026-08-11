@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
+from trading_bot.ai.freshness import current_scan_download_end, filter_completed_candles, latest_expected_completed_daily_candle
 from trading_bot.backtest.engine import BacktestEngine
 from trading_bot.config.risk_profiles import RiskMode, get_risk_profile
 from trading_bot.data.market_data import load_csv_candles
@@ -15,9 +17,11 @@ from trading_bot.data.models import Candle
 from trading_bot.data.yahoo_finance import YahooFinanceDataProvider
 from trading_bot.execution.costs import ExecutionCostConfig
 from trading_bot.execution.paper_broker import PaperBroker
+from trading_bot.forward.evaluator import HybridForwardReport, evaluate_forward_decisions
 from trading_bot.ml.dataset import MLTargetMode
 from trading_bot.ml.model import SklearnLogisticDecisionModel, XGBoostDecisionModel
 from trading_bot.ml.walk_forward import MLResearchReport, MLStrategyVariant, MLWalkForwardEvaluator, ModelResearchSpec
+from trading_bot.persistence.sqlite_store import DEFAULT_DATABASE_PATH, TradingBotSQLiteStore
 from trading_bot.research.evaluator import ResearchEvaluator, yearly_periods
 from trading_bot.research.market_sweep import (
     MarketSweepEvaluator,
@@ -57,6 +61,14 @@ LOCKED_END_DATE = datetime(2026, 1, 1)
 LOCKED_ADJUSTMENT_POLICY = "adjusted"
 
 
+@dataclass(frozen=True)
+class CurrentMarketDataLoad:
+    datasets: dict[str, list[Candle]]
+    data_issues: list[str]
+    latest_expected_date: date
+    cache_dir: Path
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = _build_parser()
     args = parser.parse_args(argv)
@@ -77,6 +89,18 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.command == "ai-scan":
         run_ai_scan_command(args)
+        return
+    if args.command == "hybrid-report":
+        run_hybrid_report_command(args)
+        return
+    if args.command == "dashboard":
+        run_dashboard_command(args)
+        return
+    if args.command == "ibkr-check":
+        run_ibkr_check_command(args)
+        return
+    if args.command == "ibkr-order-test":
+        run_ibkr_order_test_command(args)
         return
 
     run_demo()
@@ -250,19 +274,113 @@ def run_ai_scan_command(args: argparse.Namespace) -> None:
         fixed_fee=Decimal("0"),
         slippage_percentage=Decimal("0.001"),
     )
-    scan_end = _parse_date(args.end) if args.end else LOCKED_END_DATE
-    datasets = _load_symbol_datasets(
+    scan_timestamp = datetime.now()
+    current_data = _load_current_symbol_datasets(
         symbols_path=args.symbols,
         output_dir=args.output_dir,
         start=LOCKED_START_DATE,
-        end=scan_end,
+        scan_timestamp=scan_timestamp,
     )
     scanner = HybridMarketScanner(
         analyst=OpenAIAnalyst(),
         risk_profile=get_risk_profile(RiskMode.MEDIUM),
         cost_config=costs,
     )
-    print_ai_scan_report(scanner.scan(datasets))
+    store = TradingBotSQLiteStore(args.database)
+    invalidated = store.invalidate_stale_decisions()
+    report = scanner.scan(
+        current_data.datasets,
+        scan_timestamp=scan_timestamp,
+        data_issues=current_data.data_issues,
+    )
+    saved = store.save_scan(
+        report,
+        scan_timestamp=scan_timestamp,
+        risk_profile=_risk_profile_text(get_risk_profile(RiskMode.MEDIUM)),
+        portfolio_currency="SEK",
+        investor_country="Sweden",
+    )
+    print_ai_scan_report(report)
+    print(f"Current data cache: {current_data.cache_dir}")
+    print(f"Latest expected completed daily candle: {current_data.latest_expected_date}")
+    print(f"Invalid stale database decisions: {invalidated}")
+    print(f"Forward decisions saved to database: {saved}")
+    print(f"Database: {Path(args.database)}")
+
+
+def run_hybrid_report_command(args: argparse.Namespace) -> None:
+    scan_timestamp = datetime.now()
+    store = TradingBotSQLiteStore(args.database)
+    invalidated = store.invalidate_stale_decisions()
+    current_data = _load_current_symbol_datasets(
+        symbols_path=args.symbols,
+        output_dir=args.output_dir,
+        start=LOCKED_START_DATE,
+        scan_timestamp=scan_timestamp,
+    )
+    print_hybrid_forward_report(
+        evaluate_forward_decisions(store=store, datasets=current_data.datasets),
+        Path(args.database),
+        invalidated_this_run=invalidated,
+    )
+
+
+def run_dashboard_command(args: argparse.Namespace) -> None:
+    from trading_bot.dashboard.web import run_dashboard
+
+    run_dashboard(
+        host=args.host,
+        port=args.port,
+        database_path=args.database,
+        current_cache_dir=args.current_cache_dir,
+    )
+
+
+def run_ibkr_check_command(args: argparse.Namespace) -> None:
+    from trading_bot.execution.ibkr_broker import (
+        IBKRReadOnlyBroker,
+        DEFAULT_RESOLVED_CONTRACTS_PATH,
+        IbkrConnectionConfig,
+        load_contract_specs,
+        save_resolved_contracts,
+    )
+
+    broker = IBKRReadOnlyBroker(
+        IbkrConnectionConfig(
+            host=args.host,
+            port=args.port,
+            client_id=args.client_id,
+            readonly=True,
+            timeout_seconds=args.timeout,
+        )
+    )
+    specs = load_contract_specs(args.contracts)
+    snapshot = broker.read_snapshot(contract_specs=specs, local_positions={})
+    resolved_path = save_resolved_contracts(snapshot.contracts, DEFAULT_RESOLVED_CONTRACTS_PATH)
+    TradingBotSQLiteStore(args.database).save_ibkr_snapshot(snapshot)
+    print_ibkr_check_report(snapshot, resolved_path=resolved_path, host=args.host, port=args.port, client_id=args.client_id)
+
+
+def run_ibkr_order_test_command(args: argparse.Namespace) -> None:
+    from trading_bot.execution.ibkr_order_test import IbkrOrderTestConfig, run_ibkr_order_round_trip
+
+    result = run_ibkr_order_round_trip(
+        IbkrOrderTestConfig(
+            host=args.host,
+            port=args.port,
+            client_id=args.client_id,
+            timeout_seconds=args.timeout,
+            symbol=args.symbol,
+            quantity=Decimal(args.quantity),
+            explicit_test_mode=args.enable_paper_order_test,
+            contracts_path=Path(args.contracts),
+            database_path=Path(args.database),
+        ),
+        event_logger=print,
+    )
+    print_ibkr_order_test_report(result)
+    if not result.passed:
+        raise SystemExit(1)
 
 
 def _load_symbol_datasets(
@@ -295,6 +413,49 @@ def _load_symbol_datasets(
     if not datasets:
         raise ValueError("No datasets available")
     return datasets
+
+
+def _load_current_symbol_datasets(
+    *,
+    symbols_path: str,
+    output_dir: str,
+    start: datetime,
+    scan_timestamp: datetime,
+) -> CurrentMarketDataLoad:
+    symbols = load_symbol_config(symbols_path)
+    cache_dir = Path(output_dir) / "current"
+    provider = YahooFinanceDataProvider(
+        cache_dir=cache_dir,
+        adjustment_policy=LOCKED_ADJUSTMENT_POLICY,
+    )
+    download_end = current_scan_download_end(scan_timestamp)
+    latest_expected = latest_expected_completed_daily_candle(scan_timestamp)
+    datasets: dict[str, list[Candle]] = {}
+    data_issues: list[str] = []
+    for symbol in symbols:
+        try:
+            csv_path = provider.download_to_csv(
+                symbol=symbol,
+                start=start,
+                end=download_end,
+            )
+            require_matching_currency(csv_path, "SEK")
+            completed = filter_completed_candles(load_csv_candles(csv_path, symbol), now=scan_timestamp)
+        except Exception as exc:
+            data_issues.append(f"{symbol}: current data refresh failed: {exc}")
+            continue
+        if completed:
+            datasets[symbol] = completed
+        else:
+            data_issues.append(
+                f"{symbol}: no completed daily candles available through expected date {latest_expected.isoformat()}"
+            )
+    return CurrentMarketDataLoad(
+        datasets=datasets,
+        data_issues=data_issues,
+        latest_expected_date=latest_expected,
+        cache_dir=cache_dir,
+    )
 
 
 def print_research_report(report: ResearchReport) -> None:
@@ -491,39 +652,265 @@ def print_ai_scan_report(report) -> None:
     print("TradingBot current-market XGBoost + OpenAI advisory scan")
     print("This is a research scan only. It cannot trade real money.")
     print("OpenAI is advisory only and cannot change risk settings, stops, exposure, or call a broker.")
+    print(f"Scan timestamp: {report.scan_timestamp.isoformat()}")
     print("")
-    print(f"{'Rank':>4}  {'Symbol':<12}{'XGB Prob':>10}{'Momentum':>12}{'Volatility':>12}{'Volume':>12}")
+    if report.data_issues:
+        print("Data refresh issues")
+        for issue in report.data_issues:
+            print(f"- {issue}")
+        print("")
+    if report.stale_candidates:
+        print("Stale candidates rejected before OpenAI")
+        for stale in report.stale_candidates:
+            print(
+                f"- {stale.symbol}: MARKET DATA STALE - candidate rejected before AI; "
+                f"latest candle {stale.latest_candle_timestamp.isoformat()}, "
+                f"data age {stale.data_age_trading_days} trading days, "
+                f"current close {stale.current_close}; {stale.reason}"
+            )
+        print("")
+    print(
+        f"{'Rank':>4}  {'Symbol':<12}{'XGB Prob':>10}{'20d Ret':>12}{'20d Vol':>12}"
+        f"{'Volume':>12}  {'Latest Candle':>24}{'Age':>8}{'Close':>12}"
+    )
     for index, candidate in enumerate(report.ranked_candidates, start=1):
+        snapshot = candidate.snapshot
         print(
             f"{index:>4}  "
-            f"{candidate.symbol:<12}"
-            f"{_format_pct(candidate.xgboost_probability * Decimal('100'), signed=False):>10}"
-            f"{_format_pct(candidate.momentum * Decimal('100')):>12}"
-            f"{_format_pct(candidate.volatility * Decimal('100'), signed=False):>12}"
-            f"{_format_pct(candidate.volume_vs_average * Decimal('100')):>12}"
+            f"{snapshot.symbol:<12}"
+            f"{_format_pct(snapshot.xgboost_probability_pct, signed=False):>10}"
+            f"{_format_pct(snapshot.return_20d_pct):>12}"
+            f"{_format_pct(snapshot.volatility_20d_pct, signed=False):>12}"
+            f"{_format_pct(snapshot.volume_vs_20d_pct):>12}  "
+            f"{snapshot.decision_timestamp.isoformat():>24}"
+            f"{snapshot.data_age_trading_days:>8}"
+            f"{snapshot.close_price:>12}"
         )
     print("")
     print(f"OpenAI analyses requested for top {report.max_openai_analyses} candidates")
     for analyzed in report.analyzed_candidates:
         candidate = analyzed.candidate
+        snapshot = candidate.snapshot
         analysis = analyzed.openai_analysis
         print("")
-        print(f"{candidate.symbol} | XGBoost probability: {_format_pct(candidate.xgboost_probability * Decimal('100'), signed=False)}")
+        print(f"{snapshot.symbol} | XGBoost probability: {_format_pct(snapshot.xgboost_probability_pct, signed=False)}")
+        print("Normalized candidate snapshot sent to OpenAI")
+        for line in snapshot.report_lines():
+            print(f"- {line}")
         if analysis is None:
             print("OpenAI: not analyzed")
             continue
+        diagnostics = analysis.diagnostics
+        print(f"Model used: {diagnostics.model_used}")
+        print(f"Structured Output used: {'YES' if diagnostics.structured_output_used else 'NO'}")
+        print(f"Web search used: {'YES' if diagnostics.web_search_used else 'NO'}")
+        print(
+            "Web searches: "
+            f"{diagnostics.web_search_count if diagnostics.web_search_count is not None else 'unknown'}"
+        )
+        if diagnostics.source_urls:
+            print("Sources:")
+            for source in diagnostics.source_urls:
+                print(f"- {source.title}: {source.url}")
+        else:
+            print("Sources: none reported")
         print(
             f"OpenAI: {analysis.decision.value}, confidence {_format_pct(analysis.confidence * Decimal('100'), signed=False)}, "
             f"sentiment {analysis.sentiment.value}, regime {analysis.regime.value}"
         )
+        if diagnostics.model_request_succeeded and diagnostics.web_search_failed:
+            print("OpenAI model succeeded, web search failed")
         if analysis.safe_failure:
             print(f"Safe failure: {analysis.error}")
+        if diagnostics.failure_phase is not None:
+            print(f"Failure phase: {diagnostics.failure_phase}")
+        print(f"HTTP status: {diagnostics.http_status_code if diagnostics.http_status_code is not None else 'n/a'}")
+        print(f"OpenAI error type: {diagnostics.openai_error_type or 'n/a'}")
+        print(f"OpenAI error code: {diagnostics.openai_error_code or 'n/a'}")
         print(f"Summary: {analysis.summary}")
         print(f"Positive factors: {_format_list(analysis.positive_factors)}")
         print(f"Negative factors: {_format_list(analysis.negative_factors)}")
         print(f"Risk flags: {_format_list(analysis.risk_flags)}")
     print("")
     print("Real-money trading: unavailable")
+
+
+def print_hybrid_forward_report(
+    report: HybridForwardReport,
+    database_path: Path,
+    *,
+    invalidated_this_run: int = 0,
+) -> None:
+    print("TradingBot hybrid forward-test report")
+    print("This is a research simulation only. It cannot trade real money.")
+    print(f"Database: {database_path}")
+    print("Execution assumptions: next trading day open, 0.1% fees, 0.1% slippage, 5% stop, 10 trading-day max hold.")
+    print("")
+    print(f"Pending decisions: {report.pending_decisions}")
+    print(f"Completed trades: {report.completed_trades}")
+    print(f"Invalid stale decisions excluded: {report.invalid_stale_decisions}")
+    print(f"Invalidated stale decisions this run: {invalidated_this_run}")
+    print(f"Newly completed this run: {report.newly_completed}")
+    print("")
+    print(
+        f"{'Group':<20}{'Pending':>10}{'Completed':>12}{'Wins':>8}{'Losses':>8}"
+        f"{'Win':>8}{'Avg Ret':>10}{'Med Ret':>10}{'PnL SEK':>12}{'Hold':>8}{'Stops':>8}"
+    )
+    for group in report.groups:
+        print(
+            f"{group.label:<20}"
+            f"{group.pending_decisions:>10}"
+            f"{group.completed_trades:>12}"
+            f"{group.wins:>8}"
+            f"{group.losses:>8}"
+            f"{_format_pct(group.win_rate * Decimal('100'), signed=False):>8}"
+            f"{_format_pct(group.average_return_pct):>10}"
+            f"{_format_pct(group.median_return_pct):>10}"
+            f"{group.total_simulated_pnl_sek.quantize(Decimal('0.01')):>12}"
+            f"{group.average_holding_period.quantize(Decimal('0.01')):>8}"
+            f"{group.stop_exits:>8}"
+        )
+    print("")
+    print("Main question: Does OpenAI filtering improve XGBoost candidate quality?")
+    print("Compare APPROVE/WATCH/REJECT rows against ALL XGBoost top-3 after enough decisions mature.")
+    print("Real-money trading: unavailable")
+
+
+def print_ibkr_check_report(snapshot, *, resolved_path: Path, host: str, port: int, client_id: int) -> None:
+    connection = snapshot.connection
+    print("TradingBot IBKR read-only paper broker check")
+    print("No orders are submitted, modified, or cancelled.")
+    print(f"Endpoint: {host}:{port}")
+    print(f"Client ID: {client_id}")
+    print("Trading permissions: READ ONLY")
+    print("")
+    print("Connection")
+    print(f"Status: {'CONNECTED' if connection.connected else 'DISCONNECTED'}")
+    print(f"Environment: {connection.environment}")
+    print(f"Account: {_mask_account_text(connection.account_id)}")
+    print(f"Base currency: {connection.base_currency or 'n/a'}")
+    print(f"Cash balance: {_optional_money(connection.cash_balance)}")
+    print(f"Net liquidation value: {_optional_money(connection.net_liquidation_value)}")
+    print(f"Buying power: {_optional_money(connection.buying_power)}")
+    if connection.error:
+        print(f"Error: {connection.error}")
+    print("")
+    print(f"Positions: {len(snapshot.positions)}")
+    for position in snapshot.positions:
+        print(
+            f"- {position.local_symbol or position.symbol}: qty={position.quantity}, "
+            f"avg_cost={position.average_cost}, currency={position.currency}, conId={position.con_id}"
+        )
+    print(f"Open orders: {len(snapshot.open_orders)}")
+    print(f"Recent executions: {len(snapshot.recent_executions)}")
+    print("")
+    print("Contract resolution")
+    print(f"Resolved contract cache: {resolved_path}")
+    for contract in snapshot.contracts:
+        status = "VERIFIED" if contract.verified else "FAILED"
+        print(
+            f"- {contract.tradingbot_symbol}: {status}; intended={contract.intended_local_symbol}; "
+            f"local={contract.local_symbol}; conId={contract.con_id}; exchange={contract.exchange}; "
+            f"primary={contract.primary_exchange}; currency={contract.currency}; secType={contract.security_type}"
+        )
+        if contract.error:
+            print(f"  Reason: {contract.error}")
+    print("")
+    print("Reconciliation")
+    print(f"Local positions: {snapshot.reconciliation.local_positions_count}")
+    print(f"IBKR positions: {snapshot.reconciliation.ibkr_positions_count}")
+    if snapshot.reconciliation.mismatches:
+        for mismatch in snapshot.reconciliation.mismatches:
+            print(f"- MISMATCH: {mismatch}")
+    else:
+        print("No local/IBKR position mismatches detected.")
+    print("")
+    print("Live trading: LOCKED / UNAVAILABLE")
+
+
+def print_ibkr_order_test_report(result) -> None:
+    print("TradingBot IBKR PAPER order round-trip test")
+    print("This is a manually launched technical PAPER test only.")
+    print("AI, dashboard, and autonomous trading cannot trigger this command.")
+    print("")
+    print("Safety verification")
+    print(f"Endpoint: {result.endpoint}")
+    print(f"Client ID: {result.client_id}")
+    print(f"Environment: {result.account_environment}")
+    print(f"Account: {result.account_id_masked}")
+    print("Maximum quantity: 1 share")
+    print("Symbol lock: ERIC-B.ST")
+    print("")
+    print("Contract")
+    if result.contract is None:
+        print("Contract: n/a")
+    else:
+        print(f"Symbol: {result.contract.tradingbot_symbol}")
+        print(f"Local symbol: {result.contract.local_symbol}")
+        print(f"conId: {result.contract.con_id}")
+        print(f"Exchange: {result.contract.exchange}")
+        print(f"Primary exchange: {result.contract.primary_exchange}")
+        print(f"Currency: {result.contract.currency}")
+        print(f"Security type: {result.contract.security_type}")
+    print("")
+    print("BUY")
+    print(f"Order type: {result.buy_order_type}")
+    print(f"TIF: {result.buy_tif}")
+    print(f"Order ID: {result.buy_order_id if result.buy_order_id is not None else 'n/a'}")
+    print(f"Status: {result.buy_status or 'n/a'}")
+    print(f"Fill quantity: {result.buy_fill_quantity}")
+    print(f"Average fill price: {_optional_money(result.buy_average_fill_price)}")
+    for change in result.buy_status_changes:
+        print(
+            f"- {change.timestamp.isoformat()} status={change.status}, filled={change.filled_quantity}, "
+            f"remaining={change.remaining_quantity}, avg={change.average_fill_price}"
+        )
+    if result.buy_error_messages:
+        print("BUY broker messages/errors:")
+        for message in result.buy_error_messages:
+            print(f"- {message}")
+    if result.cancelled_buy_order:
+        print("BUY timeout handling: cancelled only the test BUY order")
+    print("")
+    print("SELL")
+    print(f"Order type: {result.sell_order_type}")
+    print(f"TIF: {result.sell_tif}")
+    print(f"Order ID: {result.sell_order_id if result.sell_order_id is not None else 'n/a'}")
+    print(f"Status: {result.sell_status or 'n/a'}")
+    print(f"Fill quantity: {result.sell_fill_quantity}")
+    print(f"Average fill price: {_optional_money(result.sell_average_fill_price)}")
+    for change in result.sell_status_changes:
+        print(
+            f"- {change.timestamp.isoformat()} status={change.status}, filled={change.filled_quantity}, "
+            f"remaining={change.remaining_quantity}, avg={change.average_fill_price}"
+        )
+    if result.sell_error_messages:
+        print("SELL broker messages/errors:")
+        for message in result.sell_error_messages:
+            print(f"- {message}")
+    print("")
+    print(f"Resulting paper P&L: {_optional_money(result.paper_pnl)}")
+    print(f"Final broker position: {result.final_position_quantity if result.final_position_quantity is not None else 'n/a'}")
+    print("Reconciliation")
+    if result.reconciliation is None:
+        print("n/a")
+    elif result.reconciliation.mismatches:
+        for mismatch in result.reconciliation.mismatches:
+            print(f"- MISMATCH: {mismatch}")
+    else:
+        print("PASS: local state and IBKR state are flat")
+    if result.warnings:
+        print("")
+        print("Warnings")
+        for warning in result.warnings:
+            print(f"- {warning}")
+    if result.error:
+        print("")
+        print(f"Error: {result.error}")
+    print("")
+    print(f"Status: {'PASS' if result.passed else 'FAIL'}")
+    print("Autonomous trading: DISABLED")
+    print("Live trading: LOCKED / UNAVAILABLE")
 
 
 def _market_sweep_row(result: MarketSweepInstrumentResult) -> str:
@@ -581,6 +968,26 @@ def _format_list(values: list[str]) -> str:
     return ", ".join(values) if values else "none"
 
 
+def _optional_money(value: Decimal | None) -> str:
+    return f"{value.quantize(Decimal('0.01'))} SEK" if value is not None else "n/a"
+
+
+def _mask_account_text(account_id: str | None) -> str:
+    if not account_id:
+        return "n/a"
+    if len(account_id) <= 4:
+        return "*" * len(account_id)
+    return f"{account_id[:2]}***{account_id[-2:]}"
+
+
+def _risk_profile_text(risk_profile) -> str:
+    return (
+        f"{risk_profile.mode.value}; risk_per_trade={risk_profile.risk_per_trade}; "
+        f"max_exposure={risk_profile.max_exposure}; max_drawdown={risk_profile.max_drawdown}; "
+        f"max_open_positions={risk_profile.max_open_positions}; no leverage"
+    )
+
+
 def _variant_heading(variant) -> str:
     if variant.variant.value == "xgboost_trade_aligned_calibrated":
         return "XGBOOST - TRADE-ALIGNED TARGET - CALIBRATED THRESHOLD"
@@ -633,7 +1040,40 @@ def _build_parser() -> argparse.ArgumentParser:
     ai_scan = subparsers.add_parser("ai-scan", help="Run current XGBoost + OpenAI advisory scan")
     ai_scan.add_argument("--symbols", default="config/swedish_large_caps.txt")
     ai_scan.add_argument("--output-dir", default="data")
-    ai_scan.add_argument("--end", default=None, help="Optional end date, YYYY-MM-DD. Defaults to 2026-01-01.")
+    ai_scan.add_argument("--database", default=str(DEFAULT_DATABASE_PATH), help="SQLite database path")
+    hybrid_report = subparsers.add_parser("hybrid-report", help="Evaluate persisted hybrid forward-test decisions")
+    hybrid_report.add_argument("--symbols", default="config/swedish_large_caps.txt")
+    hybrid_report.add_argument("--output-dir", default="data")
+    hybrid_report.add_argument("--database", default=str(DEFAULT_DATABASE_PATH), help="SQLite database path")
+    dashboard = subparsers.add_parser("dashboard", help="Run the local read-only web dashboard")
+    dashboard.add_argument("--host", default="localhost")
+    dashboard.add_argument("--port", type=int, default=8000)
+    dashboard.add_argument("--database", default=str(DEFAULT_DATABASE_PATH), help="SQLite database path")
+    dashboard.add_argument("--current-cache-dir", default="data/current")
+    ibkr_check = subparsers.add_parser("ibkr-check", help="Read IBKR TWS paper account data without trading")
+    ibkr_check.add_argument("--host", default="127.0.0.1")
+    ibkr_check.add_argument("--port", type=int, default=7497)
+    ibkr_check.add_argument("--client-id", type=int, default=15)
+    ibkr_check.add_argument("--timeout", type=int, default=10)
+    ibkr_check.add_argument("--contracts", default="config/ibkr_swedish_contracts.json")
+    ibkr_check.add_argument("--database", default=str(DEFAULT_DATABASE_PATH), help="SQLite database path")
+    ibkr_order_test = subparsers.add_parser(
+        "ibkr-order-test",
+        help="Run one explicit guarded IBKR PAPER buy/sell round-trip test",
+    )
+    ibkr_order_test.add_argument("--host", default="127.0.0.1")
+    ibkr_order_test.add_argument("--port", type=int, default=7497)
+    ibkr_order_test.add_argument("--client-id", type=int, default=15)
+    ibkr_order_test.add_argument("--timeout", type=int, default=60)
+    ibkr_order_test.add_argument("--symbol", default="ERIC-B.ST")
+    ibkr_order_test.add_argument("--quantity", default="1")
+    ibkr_order_test.add_argument("--contracts", default="config/ibkr_swedish_contracts.json")
+    ibkr_order_test.add_argument("--database", default=str(DEFAULT_DATABASE_PATH), help="SQLite database path")
+    ibkr_order_test.add_argument(
+        "--enable-paper-order-test",
+        action="store_true",
+        help="Required explicit safety flag for the PAPER round-trip test",
+    )
     return parser
 
 

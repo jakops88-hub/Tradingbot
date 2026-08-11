@@ -1,0 +1,14 @@
+{
+  "adjustment_policy": "adjusted",
+  "auto_adjust": true,
+  "end_date": "2026-08-12",
+  "interval": "1d",
+  "largest_repaired_ohlc_violation_pct": "1.577487014995887231531141442E-14",
+  "ohlc_normalization_policy": "yahoo_rounding_tolerance",
+  "quote_currency": "SEK",
+  "repaired_ohlc_rows": 3,
+  "source": "yfinance",
+  "start_date": "2018-01-01",
+  "symbol": "ATCO-A.ST",
+  "yfinance_repair": false
+}

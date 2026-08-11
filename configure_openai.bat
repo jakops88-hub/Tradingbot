@@ -18,8 +18,8 @@ if "%OPENAI_API_KEY_VALUE%"=="" (
     exit /b 1
 )
 
-set /p OPENAI_MODEL_VALUE=OpenAI model [press Enter for gpt-4.1-mini]: 
-if "%OPENAI_MODEL_VALUE%"=="" set "OPENAI_MODEL_VALUE=gpt-4.1-mini"
+set /p OPENAI_MODEL_VALUE=OpenAI model [press Enter for gpt-5.6-terra]: 
+if "%OPENAI_MODEL_VALUE%"=="" set "OPENAI_MODEL_VALUE=gpt-5.6-terra"
 
 setx OPENAI_API_KEY "%OPENAI_API_KEY_VALUE%" >nul
 if errorlevel 1 goto config_error

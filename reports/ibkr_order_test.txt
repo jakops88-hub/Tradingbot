@@ -1,0 +1,55 @@
+Error 354, reqId 15: You are trying to submit an order without having market data for this instrument. IBKR strongly recommends against this kind of blind trading which may result in erroneous or unexpected trades. Restriction is specified in Precautionary Settings of Global Configuration/Presets.
+Canceled order: Trade(contract=Contract(secType='STK', conId=917845, symbol='ERIC.B', exchange='SMART', primaryExchange='SFB', currency='SEK', localSymbol='ERIC B', tradingClass='ERIC.B'), order=MarketOrder(orderId=15, clientId=15, action='BUY', totalQuantity=1.0, tif='DAY'), orderStatus=OrderStatus(orderId=15, status='Cancelled', filled=0.0, remaining=0.0, avgFillPrice=0.0, permId=0, parentId=0, lastFillPrice=0.0, clientId=0, whyHeld='', mktCapPrice=0.0), fills=[], log=[TradeLogEntry(time=datetime.datetime(2026, 8, 11, 12, 17, 23, 924476, tzinfo=datetime.timezone.utc), status='PendingSubmit', message='', errorCode=0), TradeLogEntry(time=datetime.datetime(2026, 8, 11, 12, 17, 23, 986361, tzinfo=datetime.timezone.utc), status='Cancelled', message='Error 354, reqId 15: You are trying to submit an order without having market data for this instrument. IBKR strongly recommends against this kind of blind trading which may result in erroneous or unexpected trades. Restriction is specified in Precautionary Settings of Global Configuration/Presets.', errorCode=354)], advancedError='')
+Preparing IBKR PAPER BUY before submission: order_type=MKT, tif=DAY, quantity=1
+TradingBot IBKR PAPER order round-trip test
+This is a manually launched technical PAPER test only.
+AI, dashboard, and autonomous trading cannot trigger this command.
+
+Safety verification
+Endpoint: 127.0.0.1:7497
+Client ID: 15
+Environment: PAPER
+Account: DU***80
+Maximum quantity: 1 share
+Symbol lock: ERIC-B.ST
+
+Contract
+Symbol: ERIC-B.ST
+Local symbol: ERIC B
+conId: 917845
+Exchange: SMART
+Primary exchange: SFB
+Currency: SEK
+Security type: STK
+
+BUY
+Order type: MKT
+TIF: DAY
+Order ID: 15
+Status: Cancelled
+Fill quantity: 0
+Average fill price: 0.00 SEK
+- 2026-08-11T12:17:23.925474 status=PendingSubmit, filled=0, remaining=0.0, avg=0.0
+- 2026-08-11T12:17:23.988360 status=Cancelled, filled=0, remaining=0.0, avg=0.0
+BUY broker messages/errors:
+- IBKR status: PendingSubmit
+- IBKR error 354: Error 354, reqId 15: You are trying to submit an order without having market data for this instrument. IBKR strongly recommends against this kind of blind trading which may result in erroneous or unexpected trades. Restriction is specified in Precautionary Settings of Global Configuration/Presets.
+
+SELL
+Order type: MKT
+TIF: DAY
+Order ID: n/a
+Status: n/a
+Fill quantity: 0
+Average fill price: n/a
+
+Resulting paper P&L: n/a
+Final broker position: n/a
+Reconciliation
+n/a
+
+Error: BUY was Cancelled before any fill; stopping safely
+
+Status: FAIL
+Autonomous trading: DISABLED
+Live trading: LOCKED / UNAVAILABLE

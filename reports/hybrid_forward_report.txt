@@ -1,0 +1,24 @@
+TradingBot one-click hybrid forward-test report
+Database: data\tradingbot.sqlite3
+Symbols: config\swedish_large_caps.txt
+
+TradingBot hybrid forward-test report
+This is a research simulation only. It cannot trade real money.
+Database: data\tradingbot.sqlite3
+Execution assumptions: next trading day open, 0.1% fees, 0.1% slippage, 5% stop, 10 trading-day max hold.
+
+Pending decisions: 3
+Completed trades: 0
+Invalid stale decisions excluded: 3
+Invalidated stale decisions this run: 0
+Newly completed this run: 0
+
+Group                  Pending   Completed    Wins  Losses     Win   Avg Ret   Med Ret     PnL SEK    Hold   Stops
+ALL XGBoost top-3            3           0       0       0   0.00%    +0.00%    +0.00%        0.00    0.00       0
+OpenAI APPROVE               0           0       0       0   0.00%    +0.00%    +0.00%        0.00    0.00       0
+OpenAI WATCH                 3           0       0       0   0.00%    +0.00%    +0.00%        0.00    0.00       0
+OpenAI REJECT                0           0       0       0   0.00%    +0.00%    +0.00%        0.00    0.00       0
+
+Main question: Does OpenAI filtering improve XGBoost candidate quality?
+Compare APPROVE/WATCH/REJECT rows against ALL XGBoost top-3 after enough decisions mature.
+Real-money trading: unavailable

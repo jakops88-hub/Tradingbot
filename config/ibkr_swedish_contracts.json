@@ -1,0 +1,72 @@
+{
+  "VOLV-B.ST": {
+    "local_symbol": "VOLV.B",
+    "exchange": "SMART",
+    "primary_exchange": "SFB",
+    "currency": "SEK",
+    "security_type": "STK"
+  },
+  "ERIC-B.ST": {
+    "local_symbol": "ERIC.B",
+    "exchange": "SMART",
+    "primary_exchange": "SFB",
+    "currency": "SEK",
+    "security_type": "STK"
+  },
+  "SEB-A.ST": {
+    "local_symbol": "SEB.A",
+    "exchange": "SMART",
+    "primary_exchange": "SFB",
+    "currency": "SEK",
+    "security_type": "STK"
+  },
+  "SHB-A.ST": {
+    "local_symbol": "SHB.A",
+    "exchange": "SMART",
+    "primary_exchange": "SFB",
+    "currency": "SEK",
+    "security_type": "STK"
+  },
+  "SWED-A.ST": {
+    "local_symbol": "SWED.A",
+    "exchange": "SMART",
+    "primary_exchange": "SFB",
+    "currency": "SEK",
+    "security_type": "STK"
+  },
+  "HM-B.ST": {
+    "local_symbol": "HM.B",
+    "exchange": "SMART",
+    "primary_exchange": "SFB",
+    "currency": "SEK",
+    "security_type": "STK"
+  },
+  "ATCO-A.ST": {
+    "local_symbol": "ATCO.A",
+    "exchange": "SMART",
+    "primary_exchange": "SFB",
+    "currency": "SEK",
+    "security_type": "STK"
+  },
+  "INVE-B.ST": {
+    "local_symbol": "INVE.B",
+    "exchange": "SMART",
+    "primary_exchange": "SFB",
+    "currency": "SEK",
+    "security_type": "STK"
+  },
+  "ASSA-B.ST": {
+    "local_symbol": "ASSA.B",
+    "exchange": "SMART",
+    "primary_exchange": "SFB",
+    "currency": "SEK",
+    "security_type": "STK"
+  },
+  "SAND.ST": {
+    "local_symbol": "SAND",
+    "exchange": "SMART",
+    "primary_exchange": "SFB",
+    "currency": "SEK",
+    "security_type": "STK"
+  }
+}

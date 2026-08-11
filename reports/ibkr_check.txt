@@ -1,0 +1,38 @@
+TradingBot IBKR read-only paper broker check
+No orders are submitted, modified, or cancelled.
+Endpoint: 127.0.0.1:7497
+Client ID: 15
+Trading permissions: READ ONLY
+
+Connection
+Status: CONNECTED
+Environment: PAPER
+Account: DU***80
+Base currency: EUR
+Cash balance: 1000000.00 SEK
+Net liquidation value: 1000000.00 SEK
+Buying power: 6666666.67 SEK
+
+Positions: 0
+Open orders: 0
+Recent executions: 0
+
+Contract resolution
+Resolved contract cache: data\ibkr_resolved_contracts.json
+- VOLV-B.ST: VERIFIED; intended=VOLV.B; local=VOLV B; conId=917920; exchange=SMART; primary=SFB; currency=SEK; secType=STK
+- ERIC-B.ST: VERIFIED; intended=ERIC.B; local=ERIC B; conId=917845; exchange=SMART; primary=SFB; currency=SEK; secType=STK
+- SEB-A.ST: VERIFIED; intended=SEB.A; local=SEB A; conId=917880; exchange=SMART; primary=SFB; currency=SEK; secType=STK
+- SHB-A.ST: VERIFIED; intended=SHB.A; local=SHB A; conId=193902337; exchange=SMART; primary=SFB; currency=SEK; secType=STK
+- SWED-A.ST: VERIFIED; intended=SWED.A; local=SWED A; conId=1329888; exchange=SMART; primary=SFB; currency=SEK; secType=STK
+- HM-B.ST: VERIFIED; intended=HM.B; local=HM B; conId=917850; exchange=SMART; primary=SFB; currency=SEK; secType=STK
+- ATCO-A.ST: VERIFIED; intended=ATCO.A; local=ATCO A; conId=560782598; exchange=SMART; primary=SFB; currency=SEK; secType=STK
+- INVE-B.ST: VERIFIED; intended=INVE.B; local=INVE B; conId=489524872; exchange=SMART; primary=SFB; currency=SEK; secType=STK
+- ASSA-B.ST: VERIFIED; intended=ASSA.B; local=ASSA B; conId=195567797; exchange=SMART; primary=SFB; currency=SEK; secType=STK
+- SAND.ST: VERIFIED; intended=SAND; local=SAND; conId=8769361; exchange=SMART; primary=SFB; currency=SEK; secType=STK
+
+Reconciliation
+Local positions: 0
+IBKR positions: 0
+No local/IBKR position mismatches detected.
+
+Live trading: LOCKED / UNAVAILABLE

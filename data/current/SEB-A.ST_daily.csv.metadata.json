@@ -1,0 +1,14 @@
+{
+  "adjustment_policy": "adjusted",
+  "auto_adjust": true,
+  "end_date": "2026-08-12",
+  "interval": "1d",
+  "largest_repaired_ohlc_violation_pct": "2.082462807149441446719760002E-14",
+  "ohlc_normalization_policy": "yahoo_rounding_tolerance",
+  "quote_currency": "SEK",
+  "repaired_ohlc_rows": 5,
+  "source": "yfinance",
+  "start_date": "2018-01-01",
+  "symbol": "SEB-A.ST",
+  "yfinance_repair": false
+}

@@ -1,0 +1,14 @@
+{
+  "adjustment_policy": "adjusted",
+  "auto_adjust": true,
+  "end_date": "2026-08-12",
+  "interval": "1d",
+  "largest_repaired_ohlc_violation_pct": "7.324316287784463804260507457E-15",
+  "ohlc_normalization_policy": "yahoo_rounding_tolerance",
+  "quote_currency": "SEK",
+  "repaired_ohlc_rows": 1,
+  "source": "yfinance",
+  "start_date": "2018-01-01",
+  "symbol": "ERIC-B.ST",
+  "yfinance_repair": false
+}
