@@ -1,48 +1,90 @@
-"""Risk checks for orders."""
+"""Risk manager that converts approved signals into orders."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 
 from trading_bot.config.risk_profiles import RiskProfile
-from trading_bot.data.models import Order, OrderSide
+from trading_bot.data.models import Order, OrderSide, PortfolioSnapshot, Position, Signal, SignalAction
+from trading_bot.risk.position_sizing import calculate_buy_quantity
 
 
 @dataclass(frozen=True)
 class RiskDecision:
     approved: bool
     reason: str = ""
+    order: Order | None = None
 
 
 class RiskManager:
     def __init__(self, profile: RiskProfile) -> None:
         self.profile = profile
 
-    def evaluate_order(
+    def evaluate_signal(
         self,
-        order: Order,
+        signal: Signal,
         *,
-        price: float,
-        cash: float,
-        equity: float,
-        current_position_value: float = 0.0,
-        realized_daily_pnl: float = 0.0,
+        snapshot: PortfolioSnapshot,
+        positions: dict[str, Position],
+        current_price: Decimal,
+        starting_equity: Decimal,
     ) -> RiskDecision:
-        if price <= 0:
+        if current_price <= 0:
             return RiskDecision(False, "price must be positive")
-        if equity <= 0:
-            return RiskDecision(False, "equity must be positive")
-        if realized_daily_pnl <= -(equity * self.profile.max_daily_loss_fraction):
-            return RiskDecision(False, "daily loss limit reached")
+        if starting_equity <= 0:
+            return RiskDecision(False, "starting_equity must be positive")
+        if snapshot.total_equity <= 0:
+            return RiskDecision(False, "total equity must be positive")
 
-        order_value = order.quantity * price
-        max_position_value = equity * self.profile.max_position_fraction
+        drawdown = Decimal("1") - (snapshot.total_equity / starting_equity)
+        if drawdown >= self.profile.max_drawdown:
+            return RiskDecision(False, "max drawdown reached")
 
-        if order.side == OrderSide.BUY:
-            reserve_cash = equity * self.profile.min_cash_reserve_fraction
-            if order_value > max(cash - reserve_cash, 0):
-                return RiskDecision(False, "insufficient available cash")
-            if current_position_value + order_value > max_position_value:
-                return RiskDecision(False, "max position size exceeded")
+        if signal.action == SignalAction.HOLD:
+            return RiskDecision(True, "hold signal")
 
-        return RiskDecision(True, "approved")
+        if signal.action == SignalAction.SELL:
+            position = positions.get(signal.symbol)
+            if position is None or position.quantity <= 0:
+                return RiskDecision(False, "no open position to sell")
+            return RiskDecision(
+                approved=True,
+                reason="sell approved",
+                order=Order(
+                    symbol=signal.symbol,
+                    side=OrderSide.SELL,
+                    quantity=position.quantity,
+                    created_at=signal.generated_at,
+                ),
+            )
+
+        if signal.action == SignalAction.BUY:
+            existing_position = positions.get(signal.symbol)
+            if existing_position is None and snapshot.open_positions >= self.profile.max_open_positions:
+                return RiskDecision(False, "max open positions reached")
+
+            quantity = calculate_buy_quantity(
+                cash=snapshot.cash,
+                total_equity=snapshot.total_equity,
+                current_exposure=snapshot.positions_value,
+                price=current_price,
+                profile=self.profile,
+            )
+            if quantity <= 0:
+                return RiskDecision(False, "insufficient cash or exposure capacity")
+            if quantity * current_price > snapshot.cash:
+                return RiskDecision(False, "order would require leverage")
+
+            return RiskDecision(
+                approved=True,
+                reason="buy approved",
+                order=Order(
+                    symbol=signal.symbol,
+                    side=OrderSide.BUY,
+                    quantity=quantity,
+                    created_at=signal.generated_at,
+                ),
+            )
+
+        raise ValueError(f"Unsupported signal action: {signal.action}")

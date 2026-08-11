@@ -1,39 +1,78 @@
-# Trading Bot
+# TradingBot
 
-A small, modular Python trading bot scaffold with:
+TradingBot is a modular Python foundation for an automated trading platform. The current project intentionally stops at offline architecture: typed domain models, strategy and broker interfaces, risk gates, portfolio accounting, paper execution primitives, metrics, and backtest orchestration.
 
-- Market-data models and CSV loading
-- Momentum, trend, and mean-reversion strategies
-- Risk profiles, position sizing, and risk checks
-- Portfolio accounting and a paper broker
-- A simple backtest engine and metrics
+The current version cannot trade real money. It has no live broker integration, no API-key requirements, and no credential storage.
 
-This project is designed for paper trading and backtesting. It is not financial advice and should not be connected to real capital without additional validation.
+## Current Status
 
-## Quick Start
+Implemented:
+
+- `MarketDataProvider`, `Strategy`, and `Broker` abstractions
+- Typed models for candles, signals, orders, trades, positions, and portfolio snapshots
+- BUY, SELL, and HOLD signal support
+- LOW, MEDIUM, and HIGH risk profile presets
+- Decimal-based accounting for cash, prices, quantities, and PnL
+- Paper broker that returns simulated trade records only
+- Portfolio accounting and offline backtest orchestration
+- Offline pytest coverage for foundational components
+
+Not implemented yet:
+
+- Live trading
+- Real broker integrations
+- A profitable strategy
+- Dashboard or web UI
+
+## Architecture
+
+```text
+Market Data
+-> Strategy
+-> Signal
+-> Risk Manager
+-> Order
+-> Broker
+-> Portfolio
+```
+
+Strategies only produce signals. The risk manager is responsible for converting approved signals into orders. Brokers execute orders and return trade records. Portfolio accounting applies those trades.
+
+## Risk Modes
+
+| Mode | Risk/Trade | Max Exposure | Max Drawdown | Max Open Positions |
+| --- | ---: | ---: | ---: | ---: |
+| LOW | 0.5% | 30% | 8% | 2 |
+| MEDIUM | 1% | 60% | 15% | 4 |
+| HIGH | 2% | 100% | 25% | 6 |
+
+Leverage is not allowed. Future portfolio goals, such as tracking progress from 1000 SEK to 10000 SEK, are for metrics only and must not increase risk limits.
+
+## Windows Installation
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
+```
+
+If `py -3.11` is unavailable, use a Python 3.11+ interpreter already installed on your PATH:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -e .[dev]
-pytest
+python -m pip install -e ".[dev]"
 ```
 
-Run the demo CLI:
+## Run Tests
+
+```powershell
+python -m pytest
+```
+
+## CLI Check
 
 ```powershell
 trading-bot
-```
-
-## Layout
-
-```text
-src/trading_bot/
-  config/       Risk-profile presets
-  data/         Market-data loading and shared models
-  strategies/   Signal-generation strategies
-  risk/         Risk checks and position sizing
-  portfolio/    Cash, positions, and equity accounting
-  execution/    Broker interfaces and paper execution
-  backtest/     Backtest loop and metrics
 ```

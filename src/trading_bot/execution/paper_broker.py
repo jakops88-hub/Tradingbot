@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from decimal import Decimal
 
-from trading_bot.data.models import Fill, Order
+from trading_bot.data.models import Order, OrderSide, Trade
 from trading_bot.execution.broker import Broker
 
 
 class PaperBroker(Broker):
-    def __init__(self, commission_per_trade: float = 0.0, slippage_bps: float = 0.0) -> None:
+    def __init__(
+        self,
+        commission_per_trade: Decimal = Decimal("0"),
+        slippage_bps: Decimal = Decimal("0"),
+    ) -> None:
         if commission_per_trade < 0:
             raise ValueError("commission_per_trade must be non-negative")
         if slippage_bps < 0:
@@ -17,16 +21,24 @@ class PaperBroker(Broker):
         self.commission_per_trade = commission_per_trade
         self.slippage_bps = slippage_bps
 
-    def submit_order(self, order: Order, price: float) -> Fill:
-        if price <= 0:
-            raise ValueError("price must be positive")
-        slippage_multiplier = 1 + (self.slippage_bps / 10_000)
-        fill_price = price * slippage_multiplier
-        return Fill(
+    def submit_order(self, order: Order, market_price: Decimal) -> Trade:
+        if market_price <= 0:
+            raise ValueError("market_price must be positive")
+
+        slippage = self.slippage_bps / Decimal("10000")
+        if order.side == OrderSide.BUY:
+            fill_price = market_price * (Decimal("1") + slippage)
+        else:
+            fill_price = market_price * (Decimal("1") - slippage)
+
+        if fill_price <= 0:
+            raise ValueError("slippage produced a non-positive fill price")
+
+        return Trade(
             symbol=order.symbol,
             side=order.side,
             quantity=order.quantity,
             price=fill_price,
-            filled_at=order.created_at or datetime.utcnow(),
+            executed_at=order.created_at,
             commission=self.commission_per_trade,
         )

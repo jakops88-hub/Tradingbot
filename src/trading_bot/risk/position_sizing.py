@@ -2,30 +2,32 @@
 
 from __future__ import annotations
 
+from decimal import Decimal, ROUND_DOWN
+
 from trading_bot.config.risk_profiles import RiskProfile
 
 
-def fixed_fraction_size(equity: float, price: float, profile: RiskProfile) -> int:
-    if equity <= 0:
-        return 0
+def calculate_buy_quantity(
+    *,
+    cash: Decimal,
+    total_equity: Decimal,
+    current_exposure: Decimal,
+    price: Decimal,
+    profile: RiskProfile,
+) -> Decimal:
+    if cash < 0:
+        raise ValueError("cash cannot be negative")
+    if total_equity <= 0:
+        raise ValueError("total_equity must be positive")
+    if current_exposure < 0:
+        raise ValueError("current_exposure cannot be negative")
     if price <= 0:
         raise ValueError("price must be positive")
 
-    position_value = equity * profile.max_position_fraction
-    return int(position_value // price)
+    exposure_limit = total_equity * profile.max_exposure
+    remaining_exposure = max(exposure_limit - current_exposure, Decimal("0"))
+    trade_budget = min(total_equity * profile.risk_per_trade, remaining_exposure, cash)
+    if trade_budget <= 0:
+        return Decimal("0")
 
-
-def risk_based_size(equity: float, price: float, stop_price: float, profile: RiskProfile) -> int:
-    if equity <= 0:
-        return 0
-    if price <= 0 or stop_price <= 0:
-        raise ValueError("price and stop_price must be positive")
-
-    risk_per_share = abs(price - stop_price)
-    if risk_per_share == 0:
-        return 0
-
-    risk_budget = equity * profile.max_trade_risk_fraction
-    max_by_risk = int(risk_budget // risk_per_share)
-    max_by_fraction = fixed_fraction_size(equity, price, profile)
-    return max(0, min(max_by_risk, max_by_fraction))
+    return (trade_budget / price).quantize(Decimal("0.00000001"), rounding=ROUND_DOWN)

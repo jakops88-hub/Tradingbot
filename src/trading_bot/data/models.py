@@ -1,9 +1,10 @@
-"""Shared domain models for market data, signals, and execution."""
+"""Typed domain models shared across the trading platform."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 from enum import Enum
 
 
@@ -24,20 +25,22 @@ class OrderType(str, Enum):
 
 
 @dataclass(frozen=True)
-class Bar:
+class Candle:
     symbol: str
     timestamp: datetime
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: float
+    open: Decimal
+    high: Decimal
+    low: Decimal
+    close: Decimal
+    volume: Decimal
 
     def __post_init__(self) -> None:
         if self.high < max(self.open, self.close, self.low):
             raise ValueError("high must be greater than or equal to open, close, and low")
         if self.low > min(self.open, self.close, self.high):
             raise ValueError("low must be less than or equal to open, close, and high")
+        if min(self.open, self.high, self.low, self.close) <= Decimal("0"):
+            raise ValueError("prices must be positive")
         if self.volume < 0:
             raise ValueError("volume must be non-negative")
 
@@ -46,12 +49,12 @@ class Bar:
 class Signal:
     symbol: str
     action: SignalAction
-    confidence: float
     generated_at: datetime
+    confidence: Decimal = Decimal("0")
     reason: str = ""
 
     def __post_init__(self) -> None:
-        if not 0 <= self.confidence <= 1:
+        if not Decimal("0") <= self.confidence <= Decimal("1"):
             raise ValueError("confidence must be between 0 and 1")
 
 
@@ -59,33 +62,43 @@ class Signal:
 class Order:
     symbol: str
     side: OrderSide
-    quantity: int
+    quantity: Decimal
+    created_at: datetime
     order_type: OrderType = OrderType.MARKET
-    created_at: datetime | None = None
-    limit_price: float | None = None
+    limit_price: Decimal | None = None
 
     def __post_init__(self) -> None:
         if self.quantity <= 0:
             raise ValueError("quantity must be positive")
         if self.order_type == OrderType.LIMIT and self.limit_price is None:
             raise ValueError("limit orders require limit_price")
+        if self.limit_price is not None and self.limit_price <= 0:
+            raise ValueError("limit_price must be positive")
 
 
 @dataclass(frozen=True)
-class Fill:
+class Trade:
     symbol: str
     side: OrderSide
-    quantity: int
-    price: float
-    filled_at: datetime
-    commission: float = 0.0
+    quantity: Decimal
+    price: Decimal
+    executed_at: datetime
+    commission: Decimal = Decimal("0")
+
+    def __post_init__(self) -> None:
+        if self.quantity <= 0:
+            raise ValueError("quantity must be positive")
+        if self.price <= 0:
+            raise ValueError("price must be positive")
+        if self.commission < 0:
+            raise ValueError("commission must be non-negative")
 
     @property
-    def gross_value(self) -> float:
+    def gross_value(self) -> Decimal:
         return self.quantity * self.price
 
     @property
-    def net_cash_effect(self) -> float:
+    def cash_effect(self) -> Decimal:
         if self.side == OrderSide.BUY:
             return -(self.gross_value + self.commission)
         return self.gross_value - self.commission
@@ -94,11 +107,39 @@ class Fill:
 @dataclass
 class Position:
     symbol: str
-    quantity: int = 0
-    average_price: float = 0.0
+    quantity: Decimal = Decimal("0")
+    average_price: Decimal = Decimal("0")
 
-    def market_value(self, price: float) -> float:
+    def market_value(self, price: Decimal) -> Decimal:
+        if price <= 0:
+            raise ValueError("price must be positive")
         return self.quantity * price
 
-    def unrealized_pnl(self, price: float) -> float:
+    def unrealized_pnl(self, price: Decimal) -> Decimal:
+        if self.quantity == 0:
+            return Decimal("0")
         return (price - self.average_price) * self.quantity
+
+
+@dataclass(frozen=True)
+class PortfolioSnapshot:
+    generated_at: datetime
+    cash: Decimal
+    positions_value: Decimal
+    total_equity: Decimal
+    open_positions: int
+    realized_pnl: Decimal = Decimal("0")
+
+    def __post_init__(self) -> None:
+        if self.cash < 0:
+            raise ValueError("cash cannot be negative")
+        if self.positions_value < 0:
+            raise ValueError("positions_value cannot be negative")
+        if self.total_equity != self.cash + self.positions_value:
+            raise ValueError("total_equity must equal cash plus positions_value")
+        if self.open_positions < 0:
+            raise ValueError("open_positions cannot be negative")
+
+
+Bar = Candle
+Fill = Trade

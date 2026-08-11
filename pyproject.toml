@@ -5,9 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "trading-bot"
 version = "0.1.0"
-description = "A modular Python trading bot with paper execution and backtesting."
+description = "A modular automated trading platform foundation."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
