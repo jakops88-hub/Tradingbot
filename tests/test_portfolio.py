@@ -37,8 +37,8 @@ def test_portfolio_applies_buy_and_sell_trades() -> None:
     position = portfolio.positions["ABC"]
     assert portfolio.cash == Decimal("918")
     assert position.quantity == Decimal("1")
-    assert position.average_price == Decimal("100")
-    assert portfolio.realized_pnl == Decimal("19")
+    assert position.average_price == Decimal("100.5")
+    assert portfolio.realized_pnl == Decimal("18.5")
 
 
 def test_portfolio_rejects_sell_larger_than_position() -> None:

@@ -11,6 +11,14 @@ def total_return(equity_curve: list[Decimal]) -> Decimal:
     return (equity_curve[-1] / equity_curve[0]) - Decimal("1")
 
 
+def buy_and_hold_return(start_price: Decimal, end_price: Decimal) -> Decimal:
+    if start_price <= 0:
+        raise ValueError("start_price must be positive")
+    if end_price <= 0:
+        raise ValueError("end_price must be positive")
+    return (end_price / start_price) - Decimal("1")
+
+
 def max_drawdown(equity_curve: list[Decimal]) -> Decimal:
     peak = Decimal("0")
     worst = Decimal("0")

@@ -84,6 +84,10 @@ class Trade:
     price: Decimal
     executed_at: datetime
     commission: Decimal = Decimal("0")
+    market_price: Decimal | None = None
+    percentage_fee: Decimal = Decimal("0")
+    fixed_fee: Decimal = Decimal("0")
+    slippage_cost: Decimal = Decimal("0")
 
     def __post_init__(self) -> None:
         if self.quantity <= 0:
@@ -92,6 +96,14 @@ class Trade:
             raise ValueError("price must be positive")
         if self.commission < 0:
             raise ValueError("commission must be non-negative")
+        if self.market_price is not None and self.market_price <= 0:
+            raise ValueError("market_price must be positive")
+        if self.percentage_fee < 0:
+            raise ValueError("percentage_fee must be non-negative")
+        if self.fixed_fee < 0:
+            raise ValueError("fixed_fee must be non-negative")
+        if self.slippage_cost < 0:
+            raise ValueError("slippage_cost must be non-negative")
 
     @property
     def gross_value(self) -> Decimal:

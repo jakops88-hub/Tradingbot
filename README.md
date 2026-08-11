@@ -17,6 +17,8 @@ Implemented:
 - Portfolio accounting and offline historical backtest orchestration
 - CSV-based historical OHLCV loading with validation
 - Backtest results with return, drawdown, trade counts, win rate, realized PnL, profit factor, and equity curve
+- Configurable offline execution costs: percentage fee, fixed fee, and slippage
+- Buy-and-hold benchmark return comparison for the same historical period
 - Offline pytest coverage for foundational components
 
 Not implemented yet:

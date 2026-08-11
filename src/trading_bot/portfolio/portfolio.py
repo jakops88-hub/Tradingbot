@@ -28,7 +28,7 @@ class Portfolio:
         position = self.position_for(trade.symbol)
 
         if trade.side == OrderSide.BUY:
-            total_cost = position.average_price * position.quantity + trade.gross_value
+            total_cost = position.average_price * position.quantity + trade.gross_value + trade.commission
             new_quantity = position.quantity + trade.quantity
             cash_after_trade = self.cash + trade.cash_effect
             if cash_after_trade < 0:

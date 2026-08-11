@@ -60,11 +60,18 @@ def test_complete_historical_backtest_flow_records_expected_metrics() -> None:
     assert result.ending_capital == Decimal("999.99900000")
     assert result.total_return == Decimal("-0.00000100")
     assert result.total_return_pct == Decimal("-0.00010000")
+    assert result.strategy_return_pct == Decimal("-0.00010000")
+    assert result.benchmark_return_pct == Decimal("-10.0")
+    assert result.difference_vs_benchmark_pct == Decimal("9.99990000")
     assert result.total_trades == 4
     assert result.winning_trades == 1
     assert result.losing_trades == 1
     assert result.win_rate == Decimal("0.5")
     assert result.realized_pnl == Decimal("-0.00100000")
+    assert result.gross_pnl == Decimal("-0.00100000")
+    assert result.net_pnl == Decimal("-0.00100000")
+    assert result.total_fees_paid == Decimal("0")
+    assert result.total_execution_costs == Decimal("0")
     assert result.profit_factor == Decimal("0.9990009990009990009990009990")
     assert result.max_drawdown == Decimal("-0.001")
     assert result.equity_curve == [

@@ -11,6 +11,7 @@ from trading_bot.backtest.engine import BacktestEngine
 from trading_bot.config.risk_profiles import RiskMode, get_risk_profile
 from trading_bot.data.market_data import HistoricalDataProvider
 from trading_bot.data.models import Candle, PortfolioSnapshot, Signal, SignalAction
+from trading_bot.execution.costs import ExecutionCostConfig
 from trading_bot.execution.paper_broker import PaperBroker
 from trading_bot.strategies.base import Strategy
 
@@ -53,7 +54,13 @@ def main() -> None:
     engine = BacktestEngine(
         strategy=DemoThresholdStrategy(),
         risk_profile=get_risk_profile(RiskMode.MEDIUM),
-        broker=PaperBroker(),
+        broker=PaperBroker(
+            ExecutionCostConfig(
+                percentage_fee=Decimal("0.001"),
+                fixed_fee=Decimal("0.05"),
+                slippage_percentage=Decimal("0.001"),
+            )
+        ),
         starting_cash=Decimal("1000"),
     )
     result = engine.run(candles)
@@ -62,10 +69,16 @@ def main() -> None:
     print("Data: tests/fixtures/sample_ohlcv.csv")
     print("Starting capital: 1000 SEK")
     print(f"Ending capital: {result.ending_capital} SEK")
-    print(f"Total return: {result.total_return_pct}%")
-    print(f"Trades: {result.total_trades}")
+    print(f"Strategy return: {result.strategy_return_pct}%")
+    print(f"Buy & hold return: {result.benchmark_return_pct}%")
+    print(f"Difference vs benchmark: {result.difference_vs_benchmark_pct}%")
+    print(f"Total trades: {result.total_trades}")
     print(f"Win rate: {result.win_rate * Decimal('100')}%")
-    print(f"Realized PnL: {result.realized_pnl} SEK")
+    print(f"Gross PnL: {result.gross_pnl} SEK")
+    print(f"Fees/costs: {result.total_execution_costs} SEK")
+    print(f"Net PnL: {result.net_pnl} SEK")
+    print(f"Max drawdown: {result.max_drawdown * Decimal('100')}%")
+    print(f"Profit factor: {result.profit_factor}")
     print("Real-money trading: unavailable")
 
 
