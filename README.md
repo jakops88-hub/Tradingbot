@@ -94,6 +94,22 @@ trading-bot
 
 The CLI runs a deterministic offline EMA 20/50 historical simulation with starting capital of `1000 SEK`, the `MEDIUM` risk profile, and example execution costs. It is not evidence of future profitability.
 
+## One-Click Research
+
+On Windows, double-click:
+
+```text
+run_research.bat
+```
+
+The script creates or reuses `.venv`, installs required market-data dependencies, downloads `VOLV-B.ST` daily data from `2018-01-01` to `2026-01-01`, runs EMA 20/50 yearly and full-history research, and saves the report to:
+
+```text
+reports/latest_research.txt
+```
+
+The terminal window stays open when the run completes or fails, so errors can be read.
+
 Run EMA 20/50 research against a local OHLCV CSV:
 
 ```powershell
